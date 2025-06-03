@@ -3,7 +3,7 @@ export interface Employee {
   firstName: string;
   lastName: string;
   kuerzel?: string;
-  employeeType: 'ausgelernt' | 'azubi';
+  employeeType: "ausgelernt" | "azubi";
   lehrjahr?: number;
   grade: number; // Percentage (1-100)
   teamId: string;
@@ -18,6 +18,7 @@ export interface Team {
   id: string;
   name: string;
   overallShiftPercentage: number; // Percentage (0-100)
+  teamLeaderId?: string; // Optional employee ID of team leader
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,14 +42,18 @@ export interface LearningYearQualification {
 }
 
 export interface ShiftRule {
-  type: 'forbidden_sequence' | 'required_sequence' | 'mandatory_follow_up' | string;
+  type:
+    | "forbidden_sequence"
+    | "required_sequence"
+    | "mandatory_follow_up"
+    | string;
   fromShiftId: string;
   toShiftId?: string;
   toShiftIds?: string[];
   sameDay?: boolean;
   name?: string;
   fromShiftName?: string; // für Logging/Anzeige
-  toShiftName?: string;   // für Logging/Anzeige
+  toShiftName?: string; // für Logging/Anzeige
 }
 
 export interface ShiftAssignment {
@@ -81,26 +86,37 @@ export interface WorkloadStats {
   daysWorkedThisPeriod: Record<string, boolean>;
 }
 
-export type WeekDay = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
-export type HalfDay = 'AM' | 'PM';
+export type WeekDay =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday";
+export type HalfDay = "AM" | "PM";
 
-export const WEEKDAYS: WeekDay[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+export const WEEKDAYS: WeekDay[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+];
 export const WEEKDAYS_GERMAN: Record<WeekDay, string> = {
-  monday: 'Montag',
-  tuesday: 'Dienstag',
-  wednesday: 'Mittwoch',
-  thursday: 'Donnerstag',
-  friday: 'Freitag'
+  monday: "Montag",
+  tuesday: "Dienstag",
+  wednesday: "Mittwoch",
+  thursday: "Donnerstag",
+  friday: "Freitag",
 };
 export const WEEKDAYS_SHORT: Record<WeekDay, string> = {
-  monday: 'Mo',
-  tuesday: 'Di',
-  wednesday: 'Mi',
-  thursday: 'Do',
-  friday: 'Fr'
+  monday: "Mo",
+  tuesday: "Di",
+  wednesday: "Mi",
+  thursday: "Do",
+  friday: "Fr",
 };
-export const HALF_DAYS: HalfDay[] = ['AM', 'PM'];
+export const HALF_DAYS: HalfDay[] = ["AM", "PM"];
 export const HALF_DAYS_GERMAN: Record<HalfDay, string> = {
-  AM: 'VM',
-  PM: 'NM'
+  AM: "VM",
+  PM: "NM",
 };
