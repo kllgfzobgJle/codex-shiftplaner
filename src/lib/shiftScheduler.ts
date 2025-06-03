@@ -38,12 +38,17 @@ export class ShiftScheduler {
   private assignments: ShiftAssignment[];
   private conflicts: string[];
   private employeeWorkloads: Record<string, WorkloadStats>;
+  private shiftMap: Record<string, ShiftType>;
 
   constructor(options: ScheduleOptions) {
     this.options = options;
     this.assignments = [...(options.existingAssignments || [])];
     this.conflicts = [];
     this.employeeWorkloads = {};
+    this.shiftMap = {};
+    for (const st of options.shiftTypes) {
+      this.shiftMap[st.id] = st;
+    }
     this.initializeWorkloads();
     console.log('[ShiftScheduler] Initialized with', options.employees.length, 'employees and', options.shiftTypes.length, 'shift types.');
   }
@@ -126,6 +131,87 @@ export class ShiftScheduler {
     return true;
   }
 
+  private dateDiffInDays(a: Date, b: Date): number {
+    const d1 = new Date(a.toDateString());
+    const d2 = new Date(b.toDateString());
+    return Math.floor((d2.getTime() - d1.getTime()) / (24 * 60 * 60 * 1000));
+  }
+
+  private violatesForbiddenSequence(employee: Employee, date: Date, shiftType: ShiftType): boolean {
+    for (const rule of this.options.shiftRules) {
+      if (rule.type !== "forbidden_sequence") continue;
+      const toIds = rule.toShiftIds || [];
+
+      for (const a of this.assignments) {
+        if (a.employeeId !== employee.id) continue;
+        const assignedDate = new Date(a.date);
+        const diff = this.dateDiffInDays(assignedDate, date);
+
+        if (a.shiftId === rule.fromShiftId && toIds.includes(shiftType.id)) {
+          if ((rule.sameDay && diff === 0) || (!rule.sameDay && diff === 1)) {
+            return true;
+          }
+        }
+
+        if (shiftType.id === rule.fromShiftId && toIds.includes(a.shiftId)) {
+          if ((rule.sameDay && diff === 0) || (!rule.sameDay && diff === -1)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private applyMandatoryFollowUps(employee: Employee, date: Date, shiftType: ShiftType): void {
+    for (const rule of this.options.shiftRules) {
+      if (rule.type !== "mandatory_follow_up" || rule.fromShiftId !== shiftType.id) continue;
+      const toShift = this.shiftMap[rule.toShiftId ?? ""];
+      if (!toShift) continue;
+
+      const fromName = this.shiftMap[rule.fromShiftId]?.name;
+      const toName = toShift.name;
+      const isFirstYear = employee.lehrjahr === 1;
+      if (isFirstYear && rule.sameDay &&
+          ((fromName === "2A. VM" && toName === "2B. NM") ||
+           (fromName === "2B. VM" && toName === "2A. NM"))) {
+        continue;
+      }
+
+      const followDate = new Date(date);
+      if (!rule.sameDay) followDate.setDate(followDate.getDate() + 1);
+      const followDateStr = followDate.toISOString().split("T")[0];
+
+      if (!employee.allowedShifts.includes(toShift.id)) {
+        this.conflicts.push(`Folgeschicht ${toShift.name} für ${employee.firstName} ${employee.lastName} am ${followDateStr} nicht erlaubt`);
+        continue;
+      }
+      if (!this.isEmployeeAvailable(employee, followDate, toShift)) {
+        this.conflicts.push(`Mitarbeiter ${employee.firstName} ${employee.lastName} nicht verfügbar für Folgeschicht ${toShift.name} am ${followDateStr}`);
+        continue;
+      }
+
+      const alreadyPrimary = this.assignments.some(a => a.employeeId === employee.id && a.date === followDateStr && !a.isFollowUp);
+      const alreadyThisShift = this.assignments.some(a => a.employeeId === employee.id && a.date === followDateStr && a.shiftId === toShift.id);
+      if (alreadyPrimary || alreadyThisShift) {
+        continue;
+      }
+
+      const assignment: ShiftAssignment = {
+        employeeId: employee.id,
+        shiftId: toShift.id,
+        date: followDateStr,
+        locked: false,
+        isFollowUp: true,
+      };
+      this.assignments.push(assignment);
+      const duration = this.calculateShiftDuration(toShift);
+      this.employeeWorkloads[employee.id].hours += duration;
+      this.employeeWorkloads[employee.id].shifts += 1;
+      this.employeeWorkloads[employee.id].daysWorkedThisPeriod[followDateStr] = true;
+    }
+  }
+
   public schedule(): ScheduleResult {
     const currentDate = new Date(this.options.startDate);
     const endDate = new Date(this.options.endDate);
@@ -142,8 +228,10 @@ export class ShiftScheduler {
             if (!employee.allowedShifts.includes(shiftType.id)) continue;
             if (!this.isEmployeeAvailable(employee, currentDate, shiftType)) continue;
 
-            const alreadyAssigned = this.assignments.some(a => a.employeeId === employee.id && a.date === dateStr);
+            const alreadyAssigned = this.assignments.some(a => a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp);
             if (alreadyAssigned) continue;
+
+            if (this.violatesForbiddenSequence(employee, currentDate, shiftType)) continue;
 
             const assignment: ShiftAssignment = {
               employeeId: employee.id,
@@ -157,6 +245,7 @@ export class ShiftScheduler {
             this.employeeWorkloads[employee.id].hours += duration;
             this.employeeWorkloads[employee.id].shifts += 1;
             this.employeeWorkloads[employee.id].daysWorkedThisPeriod[dateStr] = true;
+            this.applyMandatoryFollowUps(employee, currentDate, shiftType);
             assigned = true;
             break;
           }
