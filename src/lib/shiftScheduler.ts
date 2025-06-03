@@ -139,6 +139,7 @@ export class ShiftScheduler {
             return this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
           });
           for (const employee of sorted) {
+            if (!employee.allowedShifts.includes(shiftType.id)) continue;
             if (!this.isEmployeeAvailable(employee, currentDate, shiftType)) continue;
 
             const alreadyAssigned = this.assignments.some(a => a.employeeId === employee.id && a.date === dateStr);
