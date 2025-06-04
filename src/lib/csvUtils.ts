@@ -77,7 +77,7 @@ export function employeesToCSV(employees: Employee[]): string {
       employee.lehrjahr || "",
       employee.grade,
       employee.teamId,
-      employee.specificShiftPercentage || "",
+      employee.specificShiftPercentage ?? "",
       JSON.stringify(employee.allowedShifts),
       JSON.stringify(employee.availability),
       employee.createdAt.toISOString(),
