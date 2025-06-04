@@ -330,12 +330,17 @@ export function ShiftCalendarGrid({
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Mitarbeiter auswählen</label>
-                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                <Select
+                  value={selectedEmployeeId || "none"}
+                  onValueChange={(value) =>
+                    setSelectedEmployeeId(value === "none" ? "" : value)
+                  }
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Mitarbeiter wählen oder leer lassen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Keine Zuweisung</SelectItem>
+                    <SelectItem value="none">Keine Zuweisung</SelectItem>
                     {getAvailableEmployees(editingCell.date, editingCell.shiftTypeId).map(employee => (
                       <SelectItem key={employee.id} value={employee.id}>
                         {employee.firstName} {employee.lastName} ({employee.kuerzel || 'Kein Kürzel'})

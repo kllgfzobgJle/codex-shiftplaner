@@ -299,11 +299,11 @@ export function TeamManagement() {
               <div>
                 <Label htmlFor="teamLeaderId">Teamleiter</Label>
                 <Select
-                  value={formData.teamLeaderId || ""}
+                  value={formData.teamLeaderId || "none"}
                   onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      teamLeaderId: value || undefined,
+                      teamLeaderId: value === "none" ? undefined : value,
                     }))
                   }
                 >
@@ -311,7 +311,7 @@ export function TeamManagement() {
                     <SelectValue placeholder="Mitarbeiter auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Keiner</SelectItem>
+                    <SelectItem value="none">Keiner</SelectItem>
                     {employees.map((emp) => (
                       <SelectItem key={emp.id} value={emp.id}>
                         {emp.firstName} {emp.lastName}
