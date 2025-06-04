@@ -1,8 +1,15 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { HAlignType } from 'jspdf-autotable';
 import { format, isWeekend, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Employee, Team, ShiftType, ShiftAssignment, WorkloadStats } from './types';
+
+interface JsPDFWithPlugin extends jsPDF {
+  lastAutoTable?: {
+    finalY: number;
+  };
+}
 
 export interface ReportOptions {
   startDate: Date;
@@ -21,7 +28,7 @@ export interface ReportOptions {
 }
 
 export class ReportGenerator {
-  private doc: jsPDF;
+  private doc: JsPDFWithPlugin;
   private options: ReportOptions;
   private yPosition = 20;
   private pageHeight = 297; // A4 height in mm
@@ -90,11 +97,11 @@ export class ReportGenerator {
       head: [['Metrik', 'Wert']],
       body: stats,
       theme: 'grid',
-      headStyles: { fillColor: [65, 105, 200] as any },
+      headStyles: { fillColor: [65, 105, 200] as [number, number, number] },
       margin: { left: this.margin, right: this.margin },
     });
 
-    this.yPosition = (this.doc as any).lastAutoTable.finalY + 15;
+    this.yPosition = (this.doc.lastAutoTable?.finalY ?? this.yPosition) + 15;
   }
 
   private generateEmployeeWorkloadReport(): void {
@@ -129,7 +136,7 @@ export class ReportGenerator {
       head: [['Name', 'Team', 'Schichten', 'Stunden', 'Tage', 'Auslastung', 'Status']],
       body: employeeData,
       theme: 'striped',
-      headStyles: { fillColor: [65, 105, 200] as any },
+      headStyles: { fillColor: [65, 105, 200] as [number, number, number] },
       margin: { left: this.margin, right: this.margin },
       columnStyles: {
         3: { halign: 'right' },
@@ -151,7 +158,7 @@ export class ReportGenerator {
       }
     });
 
-    this.yPosition = (this.doc as any).lastAutoTable.finalY + 15;
+    this.yPosition = (this.doc.lastAutoTable?.finalY ?? this.yPosition) + 15;
   }
 
   private generateTeamSummary(): void {
@@ -184,7 +191,7 @@ export class ReportGenerator {
       head: [['Team', 'Mitarbeiter', 'Zuweisungen', 'Gesamt h', 'Ø Stunden', 'Zielanteil']],
       body: teamData,
       theme: 'striped',
-      headStyles: { fillColor: [65, 105, 200] as any },
+      headStyles: { fillColor: [65, 105, 200] as [number, number, number] },
       margin: { left: this.margin, right: this.margin },
       columnStyles: {
         1: { halign: 'center' },
@@ -195,7 +202,7 @@ export class ReportGenerator {
       }
     });
 
-    this.yPosition = (this.doc as any).lastAutoTable.finalY + 15;
+    this.yPosition = (this.doc.lastAutoTable?.finalY ?? this.yPosition) + 15;
   }
 
   private generateShiftScheduleTable(): void {
@@ -253,7 +260,15 @@ export class ReportGenerator {
 
       // Add week header
       tableData.push([
-        { content: `Woche ${weekIndex + 1}`, colSpan: 6, styles: { halign: 'center' as any, fillColor: [200, 200, 200] as any, fontStyle: 'bold' as any } }
+        {
+          content: `Woche ${weekIndex + 1}`,
+          colSpan: 6,
+          styles: {
+            halign: 'center' as HAlignType,
+            fillColor: [200, 200, 200] as [number, number, number],
+            fontStyle: 'bold' as const,
+          },
+        },
       ]);
 
       // Add day headers
@@ -293,13 +308,13 @@ export class ReportGenerator {
       },
       didParseCell: (data) => {
         if (data.cell.text[0] && data.cell.text[0].includes('Woche')) {
-          data.cell.styles.fontStyle = 'bold' as any;
-          data.cell.styles.fillColor = [230, 230, 230] as any;
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [230, 230, 230] as [number, number, number];
         }
       }
     });
 
-    this.yPosition = (this.doc as any).lastAutoTable.finalY + 15;
+    this.yPosition = (this.doc.lastAutoTable?.finalY ?? this.yPosition) + 15;
   }
 
   private generateConflictReport(): void {
@@ -317,7 +332,7 @@ export class ReportGenerator {
       head: [['#', 'Beschreibung']],
       body: conflictData,
       theme: 'striped',
-      headStyles: { fillColor: [220, 38, 38] as any },
+      headStyles: { fillColor: [220, 38, 38] as [number, number, number] },
       margin: { left: this.margin, right: this.margin },
       columnStyles: {
         0: { cellWidth: 15, halign: 'center' },
@@ -325,7 +340,7 @@ export class ReportGenerator {
       }
     });
 
-    this.yPosition = (this.doc as any).lastAutoTable.finalY + 15;
+    this.yPosition = (this.doc.lastAutoTable?.finalY ?? this.yPosition) + 15;
   }
 
   public generateReport(): Uint8Array {
