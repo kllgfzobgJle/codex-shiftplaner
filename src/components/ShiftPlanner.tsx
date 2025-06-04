@@ -465,6 +465,7 @@ export function ShiftPlanner() {
                   shiftTypes={shiftTypes}
                   assignments={currentAssignments}
                   conflicts={currentConflicts}
+                  absences={absences}
                   onAssignmentChange={handleAssignmentChange}
                 />
               </CardContent>

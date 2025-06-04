@@ -5,16 +5,18 @@ import type { Employee, Absence } from '@/lib/types';
 interface AbsenceCalendarProps {
   employees: Employee[];
   absences: Absence[];
-  onCellSelect?: (employeeId: string, date: string) => void;
+  onRangeSelect?: (employeeId: string, startDate: string, endDate: string) => void;
 }
 
-export function AbsenceCalendar({ employees, absences, onCellSelect }: AbsenceCalendarProps) {
+export function AbsenceCalendar({ employees, absences, onRangeSelect }: AbsenceCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
 
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
+  const [dragStart, setDragStart] = useState<{ empId: string; date: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
@@ -35,20 +37,45 @@ export function AbsenceCalendar({ employees, absences, onCellSelect }: AbsenceCa
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
     );
 
-  const toggleCell = (employeeId: string, date: string) => {
-    const key = `${employeeId}-${date}`;
-    setSelectedCells((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
-      }
-      return newSet;
-    });
+  const startDrag = (employeeId: string, date: string) => {
+    setDragStart({ empId: employeeId, date });
+    setIsDragging(true);
+    setSelectedCells(new Set([`${employeeId}-${date}`]));
+  };
 
-    if (onCellSelect) {
-      onCellSelect(employeeId, date);
+  const updateDrag = (employeeId: string, date: string) => {
+    if (!isDragging || !dragStart || dragStart.empId !== employeeId) return;
+    let start = new Date(dragStart.date);
+    let end = new Date(date);
+    if (start > end) {
+      const tmp = start;
+      start = end;
+      end = tmp;
+    }
+    const range = new Set<string>();
+    const cur = new Date(start);
+    while (cur <= end) {
+      const ds = cur.toISOString().split('T')[0];
+      range.add(`${employeeId}-${ds}`);
+      cur.setDate(cur.getDate() + 1);
+    }
+    setSelectedCells(range);
+  };
+
+  const endDrag = (employeeId: string, date: string) => {
+    if (!isDragging || !dragStart || dragStart.empId !== employeeId) {
+      setIsDragging(false);
+      setDragStart(null);
+      setSelectedCells(new Set());
+      return;
+    }
+    const startDate = dragStart.date <= date ? dragStart.date : date;
+    const endDate = dragStart.date <= date ? date : dragStart.date;
+    setIsDragging(false);
+    setDragStart(null);
+    setSelectedCells(new Set());
+    if (onRangeSelect) {
+      onRangeSelect(employeeId, startDate, endDate);
     }
   };
 
@@ -117,7 +144,9 @@ export function AbsenceCalendar({ employees, absences, onCellSelect }: AbsenceCa
                             : ''
                       }`}
                       title={absence?.reason || ''}
-                      onClick={() => toggleCell(emp.id, dateStr)}
+                      onMouseDown={() => startDrag(emp.id, dateStr)}
+                      onMouseEnter={() => updateDrag(emp.id, dateStr)}
+                      onMouseUp={() => endDrag(emp.id, dateStr)}
                     >
                       {absence ? 'X' : ''}
                     </td>
