@@ -40,6 +40,12 @@ export function AbsenceManagement() {
     setEditingAbsence(null);
   };
 
+  const handleSelectFromCalendar = (employeeId: string, date: string) => {
+    setEditingAbsence(null);
+    setFormData({ employeeId, startDate: date, endDate: date, reason: '' });
+    setIsDialogOpen(true);
+  };
+
   const handleOpenDialog = (absence?: Absence) => {
     if (absence) {
       setEditingAbsence(absence);
@@ -154,7 +160,11 @@ export function AbsenceManagement() {
         </TabsList>
         <TabsContent value="calendar">
           <Card>
-            <AbsenceCalendar employees={employees} absences={absences} />
+            <AbsenceCalendar
+              employees={employees}
+              absences={absences}
+              onCellSelect={handleSelectFromCalendar}
+            />
           </Card>
         </TabsContent>
         <TabsContent value="list">
