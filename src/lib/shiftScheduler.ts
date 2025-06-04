@@ -228,6 +228,11 @@ export class ShiftScheduler {
       if (weekday) {
         const dateStr = currentDate.toISOString().split('T')[0];
         for (const shiftType of this.options.shiftTypes) {
+          // Skip if a primary assignment already exists for this slot
+          if (this.assignments.some(a => a.date === dateStr && a.shiftId === shiftType.id && !a.isFollowUp)) {
+            continue;
+          }
+
           let assigned = false;
           if (this.firstVmShiftId && this.zeroShiftId && shiftType.id === this.firstVmShiftId) {
             const zeroAssign = this.assignments.find(a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp);

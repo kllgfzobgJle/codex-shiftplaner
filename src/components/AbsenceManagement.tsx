@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Plus, Edit } from 'lucide-react';
 import { useData } from './DataProvider';
 import { useToast } from '@/hooks/use-toast';
 import { saveAbsence, updateAbsence, deleteAbsence } from '@/lib/dataManager';
 import type { Absence } from '@/lib/types';
+import { AbsenceCalendar } from './AbsenceCalendar';
 
 interface AbsenceFormData {
   employeeId: string;
@@ -145,40 +147,55 @@ export function AbsenceManagement() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mitarbeiter</TableHead>
-              <TableHead>Von</TableHead>
-              <TableHead>Bis</TableHead>
-              <TableHead>Grund</TableHead>
-              <TableHead className="text-right">Aktionen</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {absences.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-4 text-gray-500">Keine Abwesenheiten erfasst.</TableCell>
-              </TableRow>
-            ) : (
-              absences.map(a => (
-                <TableRow key={a.id}>
-                  <TableCell className="font-medium">{getEmployeeName(a.employeeId)}</TableCell>
-                  <TableCell>{a.startDate}</TableCell>
-                  <TableCell>{a.endDate}</TableCell>
-                  <TableCell>{a.reason}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(a)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <Tabs defaultValue="calendar" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="calendar">Kalender</TabsTrigger>
+          <TabsTrigger value="list">Liste</TabsTrigger>
+        </TabsList>
+        <TabsContent value="calendar">
+          <Card>
+            <AbsenceCalendar employees={employees} absences={absences} />
+          </Card>
+        </TabsContent>
+        <TabsContent value="list">
+          <Card>
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mitarbeiter</TableHead>
+                    <TableHead>Von</TableHead>
+                    <TableHead>Bis</TableHead>
+                    <TableHead>Grund</TableHead>
+                    <TableHead className="text-right">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {absences.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-4 text-gray-500">Keine Abwesenheiten erfasst.</TableCell>
+                    </TableRow>
+                  ) : (
+                    absences.map(a => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-medium">{getEmployeeName(a.employeeId)}</TableCell>
+                        <TableCell>{a.startDate}</TableCell>
+                        <TableCell>{a.endDate}</TableCell>
+                        <TableCell>{a.reason}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(a)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
