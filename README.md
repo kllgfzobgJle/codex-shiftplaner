@@ -40,3 +40,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 This project includes a shift scheduling system. The scheduler tracks the
 workload of each employee in **hours** based on assigned shift durations. These
 hourly workloads are used throughout the analytics dashboard and reports.
+
+Teams can define an `overallShiftPercentage` to express what portion of all
+support shifts a team should cover. During scheduling, the algorithm prioritizes
+teams that are below their target share, distributing remaining shifts fairly
+between employees within each team.

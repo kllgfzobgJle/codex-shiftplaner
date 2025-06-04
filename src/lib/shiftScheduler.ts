@@ -30,6 +30,7 @@ export interface ScheduleResult {
     totalAssignments: number;
     unassignedShifts: number;
     employeeWorkloads: Record<string, WorkloadStats>;
+    teamWorkloads: Record<string, number>;
   };
 }
 
@@ -40,6 +41,8 @@ export class ShiftScheduler {
   private assignments: ShiftAssignment[];
   private conflicts: string[];
   private employeeWorkloads: Record<string, WorkloadStats>;
+  private teamWorkloads: Record<string, number>;
+  private teamTargets: Record<string, number>;
   private shiftMap: Record<string, ShiftType>;
   private zeroShiftId?: string;
   private firstVmShiftId?: string;
@@ -49,14 +52,34 @@ export class ShiftScheduler {
     this.assignments = [...(options.existingAssignments || [])];
     this.conflicts = [];
     this.employeeWorkloads = {};
+    this.teamWorkloads = {};
+    this.teamTargets = {};
     this.shiftMap = {};
     for (const st of options.shiftTypes) {
       this.shiftMap[st.id] = st;
     }
     this.zeroShiftId = options.shiftTypes.find(s => s.name === '0.')?.id;
     this.firstVmShiftId = options.shiftTypes.find(s => s.name === '1. VM')?.id;
+    this.initializeTeamTargets();
     this.initializeWorkloads();
     console.log('[ShiftScheduler] Initialized with', options.employees.length, 'employees and', options.shiftTypes.length, 'shift types.');
+  }
+
+  private initializeTeamTargets(): void {
+    let totalSlots = 0;
+    const current = new Date(this.options.startDate);
+    const end = new Date(this.options.endDate);
+    while (current <= end) {
+      if (this.getWeekdayName(current)) {
+        totalSlots += this.options.shiftTypes.length;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    for (const team of this.options.teams) {
+      this.teamTargets[team.id] = Math.round((team.overallShiftPercentage / 100) * totalSlots);
+      this.teamWorkloads[team.id] = 0;
+    }
   }
 
   private initializeWorkloads(): void {
@@ -80,6 +103,10 @@ export class ShiftScheduler {
           this.employeeWorkloads[assignment.employeeId].hours += Number.isFinite(duration) ? duration : 0;
           this.employeeWorkloads[assignment.employeeId].shifts += 1;
           this.employeeWorkloads[assignment.employeeId].daysWorkedThisPeriod[assignment.date] = true;
+          const emp = this.options.employees.find(e => e.id === assignment.employeeId);
+          if (emp) {
+            this.teamWorkloads[emp.teamId] = (this.teamWorkloads[emp.teamId] || 0) + 1;
+          }
         }
       }
     }
@@ -213,6 +240,7 @@ export class ShiftScheduler {
         isFollowUp: true,
       };
       this.assignments.push(assignment);
+      this.teamWorkloads[employee.teamId] = (this.teamWorkloads[employee.teamId] || 0) + 1;
       const duration = this.calculateShiftDuration(toShift);
       this.employeeWorkloads[employee.id].hours += duration;
       this.employeeWorkloads[employee.id].shifts += 1;
@@ -252,6 +280,7 @@ export class ShiftScheduler {
                   isFollowUp: false,
                 };
                 this.assignments.push(assignment);
+                this.teamWorkloads[emp.teamId] = (this.teamWorkloads[emp.teamId] || 0) + 1;
                 const duration = this.calculateShiftDuration(shiftType);
                 this.employeeWorkloads[emp.id].hours += duration;
                 this.employeeWorkloads[emp.id].shifts += 1;
@@ -267,8 +296,14 @@ export class ShiftScheduler {
             }
           }
           const sorted = this.options.employees.slice().sort((a, b) => {
-            const loadDiff =
-              this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
+            const ratioA = this.teamTargets[a.teamId] > 0
+              ? (this.teamWorkloads[a.teamId] || 0) / this.teamTargets[a.teamId]
+              : Number.POSITIVE_INFINITY;
+            const ratioB = this.teamTargets[b.teamId] > 0
+              ? (this.teamWorkloads[b.teamId] || 0) / this.teamTargets[b.teamId]
+              : Number.POSITIVE_INFINITY;
+            if (ratioA !== ratioB) return ratioA - ratioB;
+            const loadDiff = this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
             if (loadDiff !== 0) return loadDiff;
             const suitA = a.shiftSuitability?.[shiftType.id] ?? 0;
             const suitB = b.shiftSuitability?.[shiftType.id] ?? 0;
@@ -291,6 +326,7 @@ export class ShiftScheduler {
               isFollowUp: false,
             };
             this.assignments.push(assignment);
+            this.teamWorkloads[employee.teamId] = (this.teamWorkloads[employee.teamId] || 0) + 1;
             const duration = this.calculateShiftDuration(shiftType);
             this.employeeWorkloads[employee.id].hours += duration;
             this.employeeWorkloads[employee.id].shifts += 1;
@@ -314,6 +350,7 @@ export class ShiftScheduler {
         totalAssignments: this.assignments.length,
         unassignedShifts: this.conflicts.length,
         employeeWorkloads: this.employeeWorkloads,
+        teamWorkloads: this.teamWorkloads,
       }
     };
   }
