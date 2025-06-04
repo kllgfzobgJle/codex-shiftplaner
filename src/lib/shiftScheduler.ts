@@ -263,12 +263,13 @@ export class ShiftScheduler {
 
           let assigned = false;
           if (this.firstVmShiftId && this.zeroShiftId && shiftType.id === this.firstVmShiftId) {
-            const zeroAssign = this.assignments.find(a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp);
+            const zeroAssign = this.assignments.find(
+              a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp,
+            );
             if (zeroAssign) {
               const emp = this.options.employees.find(e => e.id === zeroAssign.employeeId);
               if (
-                emp &&
-                emp.allowedShifts.includes(shiftType.id) &&
+                emp?.allowedShifts.includes(shiftType.id) &&
                 this.isEmployeeAvailable(emp, currentDate, shiftType) &&
                 !this.violatesForbiddenSequence(emp, currentDate, shiftType)
               ) {

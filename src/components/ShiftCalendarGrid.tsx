@@ -57,8 +57,8 @@ export function ShiftCalendarGrid({
     if (abs) return false;
     const weekday = getWeekdayName(date);
     if (!weekday) return false;
-    const sHour = parseInt(shift.startTime.split(':')[0]);
-    const eHour = parseInt(shift.endTime.split(':')[0]);
+    const sHour = Number.parseInt(shift.startTime.split(':')[0]);
+    const eHour = Number.parseInt(shift.endTime.split(':')[0]);
     if (sHour < 12) {
       if (emp.availability[`${weekday}_AM`] !== true) return false;
     }
@@ -256,7 +256,7 @@ export function ShiftCalendarGrid({
   return (
     <div className="space-y-6">
       {weeks.map((week, weekIndex) => (
-        <Card key={weekIndex}>
+        <Card key={week[0].toISOString()}>
           <CardHeader>
             <CardTitle className="text-lg">
               Woche {weekIndex + 1} (ab {new Date(week[0]).toLocaleDateString('de-DE', {
@@ -274,7 +274,7 @@ export function ShiftCalendarGrid({
                       Schicht
                     </th>
                     {week.map((date, dayIndex) => (
-                      <th key={dayIndex} className="border p-2 bg-gray-50 text-center font-medium min-w-[100px]">
+                      <th key={date.toISOString()} className="border p-2 bg-gray-50 text-center font-medium min-w-[100px]">
                         <div className="text-xs text-gray-600">
                           {Object.values(WEEKDAYS_SHORT)[dayIndex]}
                         </div>
@@ -305,7 +305,7 @@ export function ShiftCalendarGrid({
 
                         return (
                           <td
-                            key={dayIndex}
+                            key={date.toISOString()}
                             className={`border p-1 text-center cursor-pointer hover:bg-gray-50 transition-colors ${
                               isConflict ? 'bg-red-50' : ''
                             }`}

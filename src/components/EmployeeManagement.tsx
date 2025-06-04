@@ -112,12 +112,15 @@ export function EmployeeManagement() {
       return;
     }
 
-    const completedAvailability: Record<string, boolean> = { ...createDefaultAvailability(), ...formData.availability };
-    Object.keys(completedAvailability).forEach(key => {
+    const completedAvailability: Record<string, boolean> = {
+      ...createDefaultAvailability(),
+      ...formData.availability,
+    };
+    for (const key of Object.keys(completedAvailability)) {
       if (formData.availability[key] === undefined) {
         completedAvailability[key] = true;
       }
-    });
+    }
 
     const finalData = {
       ...formData,
