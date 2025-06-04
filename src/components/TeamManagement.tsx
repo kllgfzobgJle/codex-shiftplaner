@@ -70,7 +70,9 @@ export function TeamManagement() {
       setFormData({
         name: team.name,
         overallShiftPercentage: team.overallShiftPercentage,
-        teamLeaderId: team.teamLeaderId,
+        teamLeaderId: employees.some((e) => e.id === team.teamLeaderId)
+          ? team.teamLeaderId
+          : undefined,
       });
     } else {
       resetForm();
