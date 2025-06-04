@@ -28,6 +28,7 @@ interface EmployeeFormData {
   teamId: string;
   specificShiftPercentage?: number;
   allowedShifts: string[];
+  shiftSuitability: Record<string, number>;
   availability: Record<string, boolean>;
 }
 
@@ -45,6 +46,7 @@ export function EmployeeManagement() {
     grade: 100,
     teamId: '',
     allowedShifts: [],
+    shiftSuitability: {},
     availability: createDefaultAvailability(),
   });
 
@@ -57,6 +59,7 @@ export function EmployeeManagement() {
       grade: 100,
       teamId: '',
       allowedShifts: [],
+      shiftSuitability: {},
       availability: createDefaultAvailability(),
     });
     setEditingEmployee(null);
@@ -77,6 +80,7 @@ export function EmployeeManagement() {
         teamId: employee.teamId,
         specificShiftPercentage: employee.specificShiftPercentage,
         allowedShifts: employee.allowedShifts,
+        shiftSuitability: employee.shiftSuitability || {},
         availability: employee.availability,
       });
     } else {
@@ -169,6 +173,7 @@ export function EmployeeManagement() {
       teamId: employee.teamId,
       specificShiftPercentage: employee.specificShiftPercentage,
       allowedShifts: employee.allowedShifts,
+      shiftSuitability: employee.shiftSuitability || {},
       availability: employee.availability,
     });
     setEditingEmployee(null);
@@ -191,6 +196,9 @@ export function EmployeeManagement() {
       allowedShifts: checked
         ? [...prev.allowedShifts, shiftTypeId]
         : prev.allowedShifts.filter(id => id !== shiftTypeId),
+      shiftSuitability: checked
+        ? { ...prev.shiftSuitability, [shiftTypeId]: prev.shiftSuitability[shiftTypeId] ?? 3 }
+        : Object.fromEntries(Object.entries(prev.shiftSuitability).filter(([k]) => k !== shiftTypeId)),
     }));
   };
 
@@ -202,6 +210,13 @@ export function EmployeeManagement() {
       lehrjahr,
       availability: qualification?.defaultAvailability || {},
       allowedShifts: qualification?.qualifiedShiftTypes || [],
+      shiftSuitability: qualification?.qualifiedShiftTypes?.reduce<Record<string, number>>(
+        (acc, id) => {
+          acc[id] = prev.shiftSuitability[id] ?? 3;
+          return acc;
+        },
+        {}
+      ) || {},
     }));
   };
 
@@ -457,6 +472,43 @@ export function EmployeeManagement() {
                   </div>
                 </Card>
               </div>
+
+              {formData.allowedShifts.length > 0 && (
+                <div>
+                  <Label>Schicht-Eignung (0-5)</Label>
+                  <Card className="p-4 mt-2">
+                    <div className="grid grid-cols-3 gap-4">
+                      {formData.allowedShifts.map(shiftId => {
+                        const st = shiftTypes.find(s => s.id === shiftId);
+                        if (!st) return null;
+                        return (
+                          <div key={shiftId} className="space-y-1">
+                            <Label htmlFor={`suit-${shiftId}`} className="text-sm">
+                              {st.name}
+                            </Label>
+                            <Input
+                              id={`suit-${shiftId}`}
+                              type="number"
+                              min="0"
+                              max="5"
+                              value={formData.shiftSuitability[shiftId] ?? 3}
+                              onChange={(e) =>
+                                setFormData(prev => ({
+                                  ...prev,
+                                  shiftSuitability: {
+                                    ...prev.shiftSuitability,
+                                    [shiftId]: Math.min(5, Math.max(0, Number(e.target.value)))
+                                  }
+                                }))
+                              }
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                </div>
+              )}
 
               <div>
                 <Label>Verfügbarkeit</Label>
