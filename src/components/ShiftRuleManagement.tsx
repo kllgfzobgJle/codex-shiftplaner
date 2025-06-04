@@ -16,7 +16,7 @@ import type { ShiftRule } from '@/lib/types';
 import { useSortableData } from '@/hooks/useSortableData';
 
 interface ShiftRuleFormData {
-  type: 'forbidden_sequence' | 'mandatory_follow_up';
+  type: 'forbidden_sequence' | 'mandatory_follow_up' | string;
   fromShiftId: string;
   toShiftId?: string;
   toShiftIds?: string[];

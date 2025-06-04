@@ -31,10 +31,11 @@ interface EmployeeFormData {
   allowedShifts: string[];
   shiftSuitability: Record<string, number>;
   availability: Record<string, boolean>;
+  ruleIds: string[];
 }
 
 export function EmployeeManagement() {
-  const { employees, teams, shiftTypes, learningYearQualifications, refreshData } = useData();
+  const { employees, teams, shiftTypes, learningYearQualifications, shiftRules, refreshData } = useData();
   const { toast } = useToast();
   const { items: sortedEmployees, requestSort, sortConfig } = useSortableData(employees);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +51,7 @@ export function EmployeeManagement() {
     allowedShifts: [],
     shiftSuitability: {},
     availability: createDefaultAvailability(),
+    ruleIds: [],
   });
 
   const resetForm = () => {
@@ -63,6 +65,7 @@ export function EmployeeManagement() {
       allowedShifts: [],
       shiftSuitability: {},
       availability: createDefaultAvailability(),
+      ruleIds: [],
     });
     setEditingEmployee(null);
   };
@@ -84,6 +87,7 @@ export function EmployeeManagement() {
         allowedShifts: employee.allowedShifts,
         shiftSuitability: employee.shiftSuitability || {},
         availability: employee.availability,
+        ruleIds: employee.ruleIds || [],
       });
     } else {
       resetForm();
@@ -177,6 +181,7 @@ export function EmployeeManagement() {
       allowedShifts: employee.allowedShifts,
       shiftSuitability: employee.shiftSuitability || {},
       availability: employee.availability,
+      ruleIds: employee.ruleIds || [],
     });
     setEditingEmployee(null);
     setIsDialogOpen(true);
@@ -511,6 +516,36 @@ export function EmployeeManagement() {
                   </Card>
                 </div>
               )}
+
+              <div>
+                <Label>Individuelle Regeln</Label>
+                <Card className="p-4 mt-2 max-h-40 overflow-y-auto">
+                  <div className="space-y-2">
+                    {shiftRules.map(rule => (
+                      <div key={rule.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`erule-${rule.id}`}
+                          checked={formData.ruleIds.includes(rule.id)}
+                          onCheckedChange={(checked) =>
+                            setFormData(prev => ({
+                              ...prev,
+                              ruleIds: checked
+                                ? [...prev.ruleIds, rule.id]
+                                : prev.ruleIds.filter(id => id !== rule.id),
+                            }))
+                          }
+                        />
+                        <Label htmlFor={`erule-${rule.id}`} className="text-sm">
+                          {rule.name || rule.type}
+                        </Label>
+                      </div>
+                    ))}
+                    {shiftRules.length === 0 && (
+                      <p className="text-sm text-gray-500">Keine Regeln definiert.</p>
+                    )}
+                  </div>
+                </Card>
+              </div>
 
               <div>
                 <Label>Verfügbarkeit</Label>

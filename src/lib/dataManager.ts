@@ -261,7 +261,12 @@ export function deleteShiftRule(id: string): boolean {
 
 // Shift plan management
 export function getShiftPlans(): ShiftPlan[] {
-  return getFromStorage<ShiftPlan>(STORAGE_KEYS.shiftPlans);
+  const stored = getFromStorage<ShiftPlan>(STORAGE_KEYS.shiftPlans);
+  return stored.map(p => ({
+    ...p,
+    startDate: new Date(p.startDate),
+    endDate: new Date(p.endDate),
+  }));
 }
 
 export function saveShiftPlan(shiftPlan: Omit<ShiftPlan, 'id' | 'createdAt' | 'updatedAt'>): ShiftPlan {

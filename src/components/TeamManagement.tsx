@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Edit, Copy, Download, Upload } from "lucide-react";
 import { useData } from "./DataProvider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { saveTeam, updateTeam, deleteTeam } from "@/lib/dataManager";
 import { teamsToCSV, csvToTeams, downloadCSV } from "@/lib/csvUtils";
@@ -40,10 +41,11 @@ interface TeamFormData {
   name: string;
   overallShiftPercentage: number;
   teamLeaderId?: string;
+  ruleIds: string[];
 }
 
 export function TeamManagement() {
-  const { teams, employees, refreshData } = useData();
+  const { teams, employees, shiftRules, refreshData } = useData();
   const { toast } = useToast();
   const { items: sortedTeams, requestSort, sortConfig } = useSortableData(teams);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +55,7 @@ export function TeamManagement() {
     name: "",
     overallShiftPercentage: 60,
     teamLeaderId: undefined,
+    ruleIds: [],
   });
 
   const resetForm = () => {
@@ -60,6 +63,7 @@ export function TeamManagement() {
       name: "",
       overallShiftPercentage: 60,
       teamLeaderId: undefined,
+      ruleIds: [],
     });
     setEditingTeam(null);
   };
@@ -73,6 +77,7 @@ export function TeamManagement() {
         teamLeaderId: employees.some((e) => e.id === team.teamLeaderId)
           ? team.teamLeaderId
           : undefined,
+        ruleIds: team.ruleIds || [],
       });
     } else {
       resetForm();
@@ -152,6 +157,8 @@ export function TeamManagement() {
     setFormData({
       name: `${team.name} (Kopie)`,
       overallShiftPercentage: team.overallShiftPercentage,
+      teamLeaderId: team.teamLeaderId,
+      ruleIds: team.ruleIds || [],
     });
     setEditingTeam(null);
     setIsDialogOpen(true);
@@ -319,6 +326,33 @@ export function TeamManagement() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Gültige Regeln</Label>
+                <div className="border p-2 rounded-md max-h-40 overflow-y-auto mt-2 space-y-1">
+                  {shiftRules.map(rule => (
+                    <div key={rule.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`rule-${rule.id}`}
+                        checked={formData.ruleIds.includes(rule.id)}
+                        onCheckedChange={(checked) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            ruleIds: checked
+                              ? [...prev.ruleIds, rule.id]
+                              : prev.ruleIds.filter(id => id !== rule.id),
+                          }))
+                        }
+                      />
+                      <Label htmlFor={`rule-${rule.id}`} className="text-sm">
+                        {rule.name || rule.type}
+                      </Label>
+                    </div>
+                  ))}
+                  {shiftRules.length === 0 && (
+                    <p className="text-sm text-gray-500">Keine Regeln definiert.</p>
+                  )}
+                </div>
               </div>
 
               <DialogFooter>

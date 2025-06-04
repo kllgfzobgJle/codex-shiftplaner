@@ -9,6 +9,8 @@ export interface Employee {
   teamId: string;
   specificShiftPercentage?: number; // Optional override for team percentage
   allowedShifts: string[]; // Array of shift type IDs
+  /** IDs of Schichtregeln, die speziell für diesen Mitarbeiter gelten */
+  ruleIds?: string[];
   /**
    * Optional rating of how suitable an employee is for a given shift type.
    * The key is the shift type id and the value is a number from 0-5 where 5
@@ -25,6 +27,8 @@ export interface Team {
   name: string;
   overallShiftPercentage: number; // Percentage (0-100)
   teamLeaderId?: string; // Optional employee ID of team leader
+  /** IDs of Schichtregeln, die für dieses Team gelten */
+  ruleIds?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +52,7 @@ export interface LearningYearQualification {
 }
 
 export interface ShiftRule {
+  id: string;
   type:
     | "forbidden_sequence"
     | "required_sequence"
@@ -60,6 +65,8 @@ export interface ShiftRule {
   name?: string;
   fromShiftName?: string; // für Logging/Anzeige
   toShiftName?: string; // für Logging/Anzeige
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ShiftAssignment {

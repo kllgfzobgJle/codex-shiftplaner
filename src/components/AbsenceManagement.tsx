@@ -50,6 +50,10 @@ export function AbsenceManagement() {
     setIsDialogOpen(true);
   };
 
+  const handleCalendarAbsenceClick = (absence: Absence) => {
+    handleOpenDialog(absence);
+  };
+
   const handleOpenDialog = (absence?: Absence) => {
     if (absence) {
       setEditingAbsence(absence);
@@ -168,6 +172,7 @@ export function AbsenceManagement() {
               employees={employees}
               absences={absences}
               onRangeSelect={handleSelectFromCalendar}
+              onAbsenceClick={handleCalendarAbsenceClick}
             />
           </Card>
         </TabsContent>
