@@ -423,11 +423,16 @@ export function EmployeeManagement() {
                     type="number"
                     min="0"
                     max="100"
-                    value={formData.specificShiftPercentage || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      specificShiftPercentage: e.target.value ? Number(e.target.value) : undefined
-                    }))}
+                    value={formData.specificShiftPercentage ?? ''}
+                    onChange={(e) =>
+                      setFormData(prev => ({
+                        ...prev,
+                        specificShiftPercentage:
+                          e.target.value === ''
+                            ? undefined
+                            : Number(e.target.value),
+                      }))
+                    }
                     placeholder="Leer = Team-Standard"
                   />
                 </div>
