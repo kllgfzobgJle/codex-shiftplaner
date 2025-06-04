@@ -14,6 +14,7 @@ import { saveShiftType, updateShiftType, deleteShiftType } from '@/lib/dataManag
 import { shiftTypesToCSV, csvToShiftTypes, downloadCSV } from '@/lib/csvUtils';
 import type { ShiftType } from '@/lib/types';
 import { WEEKDAYS, WEEKDAYS_GERMAN } from '@/lib/types';
+import { useSortableData } from '@/hooks/useSortableData';
 
 interface ShiftTypeFormData {
   name: string;
@@ -25,6 +26,7 @@ interface ShiftTypeFormData {
 export function ShiftTypeManagement() {
   const { shiftTypes, refreshData } = useData();
   const { toast } = useToast();
+  const { items: sortedShiftTypes, requestSort, sortConfig } = useSortableData(shiftTypes);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingShiftType, setEditingShiftType] = useState<ShiftType | null>(null);
@@ -345,10 +347,18 @@ export function ShiftTypeManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Start</TableHead>
-              <TableHead>Ende</TableHead>
-              <TableHead>Bedarf (Mo-Fr)</TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('name')}>Name{sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('startTime')}>Start{sortConfig?.key === 'startTime' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('endTime')}>Ende{sortConfig?.key === 'endTime' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('weeklyNeeds')}>Bedarf (Mo-Fr){sortConfig?.key === 'weeklyNeeds' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
@@ -360,7 +370,7 @@ export function ShiftTypeManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              shiftTypes.map(shiftType => (
+              sortedShiftTypes.map(shiftType => (
                 <TableRow key={shiftType.id}>
                   <TableCell className="font-medium">{shiftType.name}</TableCell>
                   <TableCell>{shiftType.startTime}</TableCell>

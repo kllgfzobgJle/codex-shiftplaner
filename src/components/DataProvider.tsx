@@ -1,13 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { Employee, Team, ShiftType, LearningYearQualification, ShiftRule } from '@/lib/types';
+import type { Employee, Team, ShiftType, LearningYearQualification, ShiftRule, Absence } from '@/lib/types';
 import {
   getEmployees,
   getTeams,
   getShiftTypes,
   getLearningYearQualifications,
   getShiftRules,
+  getAbsences,
 } from '@/lib/dataManager';
 
 interface DataContextType {
@@ -16,6 +17,7 @@ interface DataContextType {
   shiftTypes: ShiftType[];
   learningYearQualifications: LearningYearQualification[];
   shiftRules: ShiftRule[];
+  absences: Absence[];
   refreshData: () => void;
 }
 
@@ -27,6 +29,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
   const [learningYearQualifications, setLearningYearQualifications] = useState<LearningYearQualification[]>([]);
   const [shiftRules, setShiftRules] = useState<ShiftRule[]>([]);
+  const [absences, setAbsences] = useState<Absence[]>([]);
 
   const refreshData = useCallback(() => {
     setEmployees(getEmployees());
@@ -34,6 +37,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setShiftTypes(getShiftTypes());
     setLearningYearQualifications(getLearningYearQualifications());
     setShiftRules(getShiftRules());
+    setAbsences(getAbsences());
   }, []);
 
   useEffect(() => {
@@ -48,6 +52,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         shiftTypes,
         learningYearQualifications,
         shiftRules,
+        absences,
         refreshData,
       }}
     >

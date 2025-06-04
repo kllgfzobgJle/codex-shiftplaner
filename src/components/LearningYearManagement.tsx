@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateLearningYearQualification } from '@/lib/dataManager';
 import type { LearningYearQualification } from '@/lib/types';
 import { WEEKDAYS, HALF_DAYS, WEEKDAYS_SHORT, HALF_DAYS_GERMAN } from '@/lib/types';
+import { useSortableData } from '@/hooks/useSortableData';
 
 interface LearningYearFormData {
   jahr: number;
@@ -24,6 +25,7 @@ interface LearningYearFormData {
 export function LearningYearManagement() {
   const { learningYearQualifications, shiftTypes, refreshData } = useData();
   const { toast } = useToast();
+  const { items: sortedQualifications, requestSort, sortConfig } = useSortableData(learningYearQualifications);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<LearningYearFormData>({
     jahr: 1,
@@ -124,14 +126,20 @@ export function LearningYearManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Lehrjahr</TableHead>
-              <TableHead>Qualifizierte Schichten</TableHead>
-              <TableHead>Standard Verfügbarkeit</TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('jahr')}>Lehrjahr{sortConfig?.key === 'jahr' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('qualifiedShiftTypes')}>Qualifizierte Schichten{sortConfig?.key === 'qualifiedShiftTypes' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('defaultAvailability')}>Standard Verfügbarkeit{sortConfig?.key === 'defaultAvailability' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {learningYearQualifications.map(qualification => (
+            {sortedQualifications.map(qualification => (
               <TableRow key={qualification.id}>
                 <TableCell className="font-medium">{qualification.jahr}. Lehrjahr</TableCell>
                 <TableCell className="max-w-xs truncate" title={getShiftTypeNames(qualification.qualifiedShiftTypes)}>

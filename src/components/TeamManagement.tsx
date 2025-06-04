@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSortableData } from "@/hooks/useSortableData";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ interface TeamFormData {
 export function TeamManagement() {
   const { teams, employees, refreshData } = useData();
   const { toast } = useToast();
+  const { items: sortedTeams, requestSort, sortConfig } = useSortableData(teams);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -350,9 +352,16 @@ export function TeamManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Gesamtschichtanteil (%)</TableHead>
-              <TableHead>Teamleiter</TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('name')}>Name{sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('overallShiftPercentage')}>Gesamtschichtanteil (%)
+                  {sortConfig?.key === 'overallShiftPercentage' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('teamLeaderId')}>Teamleiter{sortConfig?.key === 'teamLeaderId' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
@@ -367,7 +376,7 @@ export function TeamManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              teams.map((team) => (
+              sortedTeams.map((team) => (
                 <TableRow key={team.id}>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell>{team.overallShiftPercentage}%</TableCell>

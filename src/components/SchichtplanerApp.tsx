@@ -9,6 +9,7 @@ import { TeamManagement } from './TeamManagement';
 import { ShiftTypeManagement } from './ShiftTypeManagement';
 import { LearningYearManagement } from './LearningYearManagement';
 import { ShiftRuleManagement } from './ShiftRuleManagement';
+import { AbsenceManagement } from './AbsenceManagement';
 import { ShiftPlanner } from './ShiftPlanner';
 import { DataProvider } from './DataProvider';
 import { Download, Upload } from 'lucide-react';
@@ -86,7 +87,7 @@ export function SchichtplanerApp() {
     <DataProvider>
       <div className="min-h-screen bg-gray-50">
         <header className="bg-slate-800 text-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">Schichtplaner</h1>
@@ -123,14 +124,15 @@ export function SchichtplanerApp() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <Tabs defaultValue="employees" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="employees">Mitarbeiter</TabsTrigger>
               <TabsTrigger value="teams">Teams</TabsTrigger>
               <TabsTrigger value="shift-types">Schichttypen</TabsTrigger>
               <TabsTrigger value="learning-years">Lehrjahre</TabsTrigger>
               <TabsTrigger value="shift-rules">Schichtregeln</TabsTrigger>
+              <TabsTrigger value="absences">Abwesenheiten</TabsTrigger>
               <TabsTrigger value="planner">Planer</TabsTrigger>
             </TabsList>
 
@@ -200,6 +202,18 @@ export function SchichtplanerApp() {
                 </CardHeader>
                 <CardContent>
                   <ShiftRuleManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="absences">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Abwesenheiten</CardTitle>
+                  <CardDescription>Verwalten Sie Abwesenheiten der Mitarbeiter.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AbsenceManagement />
                 </CardContent>
               </Card>
             </TabsContent>

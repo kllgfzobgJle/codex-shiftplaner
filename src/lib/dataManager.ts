@@ -4,7 +4,8 @@ import type {
   ShiftType,
   LearningYearQualification,
   ShiftRule,
-  ShiftPlan
+  ShiftPlan,
+  Absence
 } from './types';
 
 // Local storage keys
@@ -15,6 +16,7 @@ const STORAGE_KEYS = {
   learningYearQualifications: 'schichtplaner-learning-year-qualifications',
   shiftRules: 'schichtplaner-shift-rules',
   shiftPlans: 'schichtplaner-shift-plans',
+  absences: 'schichtplaner-absences',
 };
 
 // Generic storage functions
@@ -298,6 +300,47 @@ export function deleteShiftPlan(id: string): boolean {
   return true;
 }
 
+// Absence management
+export function getAbsences(): Absence[] {
+  return getFromStorage<Absence>(STORAGE_KEYS.absences);
+}
+
+export function saveAbsence(absence: Omit<Absence, 'id' | 'createdAt' | 'updatedAt'>): Absence {
+  const absences = getAbsences();
+  const newAbsence: Absence = {
+    ...absence,
+    id: generateId(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  absences.push(newAbsence);
+  saveToStorage(STORAGE_KEYS.absences, absences);
+  return newAbsence;
+}
+
+export function updateAbsence(id: string, updates: Partial<Absence>): Absence | null {
+  const absences = getAbsences();
+  const index = absences.findIndex(a => a.id === id);
+  if (index === -1) return null;
+
+  absences[index] = {
+    ...absences[index],
+    ...updates,
+    updatedAt: new Date(),
+  };
+  saveToStorage(STORAGE_KEYS.absences, absences);
+  return absences[index];
+}
+
+export function deleteAbsence(id: string): boolean {
+  const absences = getAbsences();
+  const filtered = absences.filter(a => a.id !== id);
+  if (filtered.length === absences.length) return false;
+
+  saveToStorage(STORAGE_KEYS.absences, filtered);
+  return true;
+}
+
 // Export/Import all data
 export function exportAllData(): void {
   const allData = {
@@ -307,6 +350,7 @@ export function exportAllData(): void {
     learningYearQualifications: getLearningYearQualifications(),
     shiftRules: getShiftRules(),
     shiftPlans: getShiftPlans(),
+    absences: getAbsences(),
     exportDate: new Date().toISOString(),
   };
 
@@ -332,4 +376,5 @@ export function importAllData(jsonString: string): void {
   if (data.learningYearQualifications) saveToStorage(STORAGE_KEYS.learningYearQualifications, data.learningYearQualifications);
   if (data.shiftRules) saveToStorage(STORAGE_KEYS.shiftRules, data.shiftRules);
   if (data.shiftPlans) saveToStorage(STORAGE_KEYS.shiftPlans, data.shiftPlans);
+  if (data.absences) saveToStorage(STORAGE_KEYS.absences, data.absences);
 }
