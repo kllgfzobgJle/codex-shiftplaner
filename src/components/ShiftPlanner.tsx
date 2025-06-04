@@ -18,7 +18,7 @@ import { saveShiftPlan, getShiftPlans, deleteShiftPlan } from '@/lib/dataManager
 import type { ShiftAssignment, ShiftPlan, WorkloadStats } from '@/lib/types';
 
 export function ShiftPlanner() {
-  const { employees, teams, shiftTypes, learningYearQualifications, shiftRules, refreshData } = useData();
+  const { employees, teams, shiftTypes, learningYearQualifications, shiftRules, absences, refreshData } = useData();
   const { toast } = useToast();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -94,6 +94,7 @@ export function ShiftPlanner() {
         shiftTypes,
         learningYearQualifications,
         shiftRules,
+        absences,
         existingAssignments: currentAssignments,
       };
 
@@ -188,7 +189,7 @@ export function ShiftPlanner() {
     setPlanName(plan.planName || '');
 
     // Recalculate statistics and conflicts
-    const scheduleOptions = {
+  const scheduleOptions = {
       startDate: plan.startDate,
       endDate: plan.endDate,
       employees,
@@ -196,6 +197,7 @@ export function ShiftPlanner() {
       shiftTypes,
       learningYearQualifications,
       shiftRules,
+      absences,
       existingAssignments: plan.assignments,
     };
 
@@ -235,6 +237,15 @@ export function ShiftPlanner() {
     }
   };
 
+  const handleClearUnlocked = () => {
+    const remaining = currentAssignments.filter(a => a.locked);
+    handleAssignmentChange(remaining);
+  };
+
+  const handleClearAll = () => {
+    handleAssignmentChange([]);
+  };
+
   const handleAssignmentChange = (newAssignments: ShiftAssignment[]) => {
     setCurrentAssignments(newAssignments);
 
@@ -248,6 +259,7 @@ export function ShiftPlanner() {
         shiftTypes,
         learningYearQualifications,
         shiftRules,
+        absences,
         existingAssignments: newAssignments,
       };
 
@@ -308,6 +320,19 @@ export function ShiftPlanner() {
                 {isGenerating ? "Generiere..." : "Plan generieren"}
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Clear Plan Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan leeren</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={handleClearUnlocked} disabled={currentAssignments.length === 0}>Nur ungesperrte löschen</Button>
+            <Button variant="destructive" onClick={handleClearAll} disabled={currentAssignments.length === 0}>Komplett leeren</Button>
           </div>
         </CardContent>
       </Card>
@@ -396,7 +421,7 @@ export function ShiftPlanner() {
       </Card>
 
       {/* Plan Display and Analytics */}
-      {currentAssignments.length > 0 && startDate && endDate ? (
+      {startDate && endDate ? (
         <Tabs defaultValue="calendar" className="space-y-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="calendar" className="flex items-center space-x-2">
@@ -460,20 +485,9 @@ export function ShiftPlanner() {
           </TabsContent>
         </Tabs>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Schichtplan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="border border-gray-200 rounded-md p-8 text-center text-gray-500">
-              <CalendarDays className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg mb-2">Kein Plan generiert</p>
-              <p className="text-sm">
-                Wählen Sie ein Startdatum und klicken Sie auf "Plan generieren" oder laden Sie einen gespeicherten Plan.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="border border-dashed border-gray-300 rounded-md p-8 text-center text-gray-500">
+          <p className="text-sm">Noch keine Zuweisungen vorhanden</p>
+        </div>
       )}
 
       {/* Statistics */}

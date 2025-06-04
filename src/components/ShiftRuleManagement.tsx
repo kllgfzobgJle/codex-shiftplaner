@@ -13,6 +13,7 @@ import { useData } from './DataProvider';
 import { useToast } from '@/hooks/use-toast';
 import { saveShiftRule, updateShiftRule, deleteShiftRule } from '@/lib/dataManager';
 import type { ShiftRule } from '@/lib/types';
+import { useSortableData } from '@/hooks/useSortableData';
 
 interface ShiftRuleFormData {
   type: 'forbidden_sequence' | 'mandatory_follow_up';
@@ -25,6 +26,7 @@ interface ShiftRuleFormData {
 export function ShiftRuleManagement() {
   const { shiftRules, shiftTypes, refreshData } = useData();
   const { toast } = useToast();
+  const { items: sortedShiftRules, requestSort, sortConfig } = useSortableData(shiftRules);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<ShiftRule | null>(null);
   const [formData, setFormData] = useState<ShiftRuleFormData>({
@@ -370,8 +372,12 @@ export function ShiftRuleManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Regeltyp</TableHead>
-              <TableHead>Beschreibung</TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('type')}>Regeltyp{sortConfig?.key === 'type' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('name')}>Beschreibung{sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
@@ -383,7 +389,7 @@ export function ShiftRuleManagement() {
                 </TableCell>
               </TableRow>
             ) : (
-              shiftRules.map(rule => (
+              sortedShiftRules.map(rule => (
                 <TableRow key={rule.id}>
                   <TableCell className="font-medium">{formatRuleType(rule.type)}</TableCell>
                   <TableCell>{formatRuleDescription(rule)}</TableCell>

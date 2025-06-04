@@ -80,6 +80,16 @@ export interface ShiftPlan {
   updatedAt: Date;
 }
 
+export interface Absence {
+  id: string;
+  employeeId: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  reason?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface DayShiftNeed {
   shiftTypeId: string;
   count: number;

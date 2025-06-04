@@ -17,6 +17,7 @@ import { employeesToCSV, csvToEmployees, downloadCSV } from '@/lib/csvUtils';
 import type { Employee } from '@/lib/types';
 import { WEEKDAYS, HALF_DAYS, WEEKDAYS_SHORT, HALF_DAYS_GERMAN } from '@/lib/types';
 import { createDefaultAvailability } from '@/lib/createDefaultAvailability';
+import { useSortableData } from '@/hooks/useSortableData';
 
 interface EmployeeFormData {
   firstName: string;
@@ -35,6 +36,7 @@ interface EmployeeFormData {
 export function EmployeeManagement() {
   const { employees, teams, shiftTypes, learningYearQualifications, refreshData } = useData();
   const { toast } = useToast();
+  const { items: sortedEmployees, requestSort, sortConfig } = useSortableData(employees);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -571,22 +573,30 @@ export function EmployeeManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Vorname</TableHead>
-              <TableHead>Nachname</TableHead>
-              <TableHead>Anstellungsgrad</TableHead>
-              <TableHead>Team</TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('firstName')}>Vorname{sortConfig?.key === 'firstName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('lastName')}>Nachname{sortConfig?.key === 'lastName' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('grade')}>Anstellungsgrad{sortConfig?.key === 'grade' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
+              <TableHead>
+                <button type="button" onClick={() => requestSort('teamId')}>Team{sortConfig?.key === 'teamId' ? (sortConfig.direction === 'asc' ? ' ▲' : ' ▼') : ''}</button>
+              </TableHead>
               <TableHead className="text-right">Aktionen</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employees.length === 0 ? (
+            {sortedEmployees.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-4 text-gray-500">
                   Keine Mitarbeiter gefunden.
                 </TableCell>
               </TableRow>
             ) : (
-              employees.map(employee => (
+              sortedEmployees.map(employee => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.firstName}</TableCell>
                   <TableCell>{employee.lastName}</TableCell>

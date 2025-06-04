@@ -6,6 +6,7 @@ import type {
   ShiftRule,
   ShiftAssignment,
   WorkloadStats,
+  Absence,
   WeekDay,
   WEEKDAYS
 } from './types';
@@ -19,6 +20,7 @@ export interface ScheduleOptions {
   learningYearQualifications: LearningYearQualification[];
   shiftRules: ShiftRule[];
   existingAssignments?: ShiftAssignment[];
+  absences?: Absence[];
 }
 
 export interface ScheduleResult {
@@ -39,6 +41,8 @@ export class ShiftScheduler {
   private conflicts: string[];
   private employeeWorkloads: Record<string, WorkloadStats>;
   private shiftMap: Record<string, ShiftType>;
+  private zeroShiftId?: string;
+  private firstVmShiftId?: string;
 
   constructor(options: ScheduleOptions) {
     this.options = options;
@@ -49,6 +53,8 @@ export class ShiftScheduler {
     for (const st of options.shiftTypes) {
       this.shiftMap[st.id] = st;
     }
+    this.zeroShiftId = options.shiftTypes.find(s => s.name === '0.')?.id;
+    this.firstVmShiftId = options.shiftTypes.find(s => s.name === '1. VM')?.id;
     this.initializeWorkloads();
     console.log('[ShiftScheduler] Initialized with', options.employees.length, 'employees and', options.shiftTypes.length, 'shift types.');
   }
@@ -101,6 +107,8 @@ export class ShiftScheduler {
   }
 
   private isEmployeeAvailable(employee: Employee, date: Date, shiftType: ShiftType): boolean {
+    const absence = this.options.absences?.find(a => a.employeeId === employee.id && date >= new Date(a.startDate) && date <= new Date(a.endDate));
+    if (absence) return false;
     const weekday = this.getWeekdayName(date);
     if (!weekday) return false;
 
@@ -221,6 +229,38 @@ export class ShiftScheduler {
         const dateStr = currentDate.toISOString().split('T')[0];
         for (const shiftType of this.options.shiftTypes) {
           let assigned = false;
+          if (this.firstVmShiftId && this.zeroShiftId && shiftType.id === this.firstVmShiftId) {
+            const zeroAssign = this.assignments.find(a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp);
+            if (zeroAssign) {
+              const emp = this.options.employees.find(e => e.id === zeroAssign.employeeId);
+              if (
+                emp &&
+                emp.allowedShifts.includes(shiftType.id) &&
+                this.isEmployeeAvailable(emp, currentDate, shiftType) &&
+                !this.violatesForbiddenSequence(emp, currentDate, shiftType)
+              ) {
+                const assignment: ShiftAssignment = {
+                  employeeId: emp.id,
+                  shiftId: shiftType.id,
+                  date: dateStr,
+                  locked: false,
+                  isFollowUp: false,
+                };
+                this.assignments.push(assignment);
+                const duration = this.calculateShiftDuration(shiftType);
+                this.employeeWorkloads[emp.id].hours += duration;
+                this.employeeWorkloads[emp.id].shifts += 1;
+                this.employeeWorkloads[emp.id].daysWorkedThisPeriod[dateStr] = true;
+                this.applyMandatoryFollowUps(emp, currentDate, shiftType);
+                assigned = true;
+              } else {
+                this.conflicts.push(`1. VM kann nicht von derselben Person wie 0. ausgeführt werden am ${dateStr}`);
+              }
+            }
+            if (assigned) {
+              continue;
+            }
+          }
           const sorted = this.options.employees.slice().sort((a, b) => {
             const loadDiff =
               this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
