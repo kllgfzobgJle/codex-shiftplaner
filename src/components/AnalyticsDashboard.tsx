@@ -37,7 +37,11 @@ export function AnalyticsDashboard({
 
   // Calculate total working hours in the period
   const calculateTotalHours = () => {
-    return Object.values(workloadStats).reduce((total, stats) => total + stats.hours, 0);
+    const total = Object.values(workloadStats).reduce(
+      (sum, stats) => sum + stats.hours,
+      0,
+    );
+    return Number(total.toFixed(1));
   };
 
   // Calculate shift coverage statistics
