@@ -5,13 +5,16 @@ import type { Employee, Absence } from '@/lib/types';
 interface AbsenceCalendarProps {
   employees: Employee[];
   absences: Absence[];
+  onCellSelect?: (employeeId: string, date: string) => void;
 }
 
-export function AbsenceCalendar({ employees, absences }: AbsenceCalendarProps) {
+export function AbsenceCalendar({ employees, absences, onCellSelect }: AbsenceCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
+  const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set());
 
   const daysInMonth = new Date(
     currentMonth.getFullYear(),
@@ -31,6 +34,23 @@ export function AbsenceCalendar({ employees, absences }: AbsenceCalendarProps) {
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
     );
+
+  const toggleCell = (employeeId: string, date: string) => {
+    const key = `${employeeId}-${date}`;
+    setSelectedCells((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+
+    if (onCellSelect) {
+      onCellSelect(employeeId, date);
+    }
+  };
 
   const isAbsent = (
     employeeId: string,
@@ -70,7 +90,7 @@ export function AbsenceCalendar({ employees, absences }: AbsenceCalendarProps) {
               {daysArray.map((d) => (
                 <th
                   key={d.toISOString()}
-                  className="border p-1 bg-gray-50 text-center text-xs"
+                  className="border p-1 bg-gray-50 text-center text-xs min-w-[40px]"
                 >
                   {d.getDate()}
                 </th>
@@ -89,8 +109,15 @@ export function AbsenceCalendar({ employees, absences }: AbsenceCalendarProps) {
                   return (
                     <td
                       key={dateStr}
-                      className={`border p-1 text-center text-xs ${absence ? 'bg-red-100' : ''}`}
+                      className={`border p-1 text-center text-xs min-w-[40px] ${
+                        absence
+                          ? 'bg-red-100'
+                          : selectedCells.has(`${emp.id}-${dateStr}`)
+                            ? 'bg-blue-100'
+                            : ''
+                      }`}
                       title={absence?.reason || ''}
+                      onClick={() => toggleCell(emp.id, dateStr)}
                     >
                       {absence ? 'X' : ''}
                     </td>
