@@ -9,6 +9,12 @@ export interface Employee {
   teamId: string;
   specificShiftPercentage?: number; // Optional override for team percentage
   allowedShifts: string[]; // Array of shift type IDs
+  /**
+   * Optional rating of how suitable an employee is for a given shift type.
+   * The key is the shift type id and the value is a number from 0-5 where 5
+   * means highly suitable and 0 means not suitable.
+   */
+  shiftSuitability?: Record<string, number>;
   availability: Record<string, boolean>; // e.g. {"monday_AM": true, "monday_PM": false}
   createdAt: Date;
   updatedAt: Date;

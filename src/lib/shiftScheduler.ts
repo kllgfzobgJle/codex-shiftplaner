@@ -222,7 +222,12 @@ export class ShiftScheduler {
         for (const shiftType of this.options.shiftTypes) {
           let assigned = false;
           const sorted = this.options.employees.slice().sort((a, b) => {
-            return this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
+            const loadDiff =
+              this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
+            if (loadDiff !== 0) return loadDiff;
+            const suitA = a.shiftSuitability?.[shiftType.id] ?? 0;
+            const suitB = b.shiftSuitability?.[shiftType.id] ?? 0;
+            return suitB - suitA;
           });
           for (const employee of sorted) {
             if (!employee.allowedShifts.includes(shiftType.id)) continue;
