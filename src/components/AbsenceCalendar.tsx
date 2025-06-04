@@ -6,9 +6,10 @@ interface AbsenceCalendarProps {
   employees: Employee[];
   absences: Absence[];
   onRangeSelect?: (employeeId: string, startDate: string, endDate: string) => void;
+  onAbsenceClick?: (absence: Absence) => void;
 }
 
-export function AbsenceCalendar({ employees, absences, onRangeSelect }: AbsenceCalendarProps) {
+export function AbsenceCalendar({ employees, absences, onRangeSelect, onAbsenceClick }: AbsenceCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -37,7 +38,24 @@ export function AbsenceCalendar({ employees, absences, onRangeSelect }: AbsenceC
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1),
     );
 
+  const isAbsent = (
+    employeeId: string,
+    date: string,
+  ): Absence | undefined => {
+    return absences.find(
+      (a) =>
+        a.employeeId === employeeId &&
+        date >= a.startDate &&
+        date <= a.endDate,
+    );
+  };
+
   const startDrag = (employeeId: string, date: string) => {
+    const absence = isAbsent(employeeId, date);
+    if (absence) {
+      onAbsenceClick?.(absence);
+      return;
+    }
     setDragStart({ empId: employeeId, date });
     setIsDragging(true);
     setSelectedCells(new Set([`${employeeId}-${date}`]));
@@ -77,18 +95,6 @@ export function AbsenceCalendar({ employees, absences, onRangeSelect }: AbsenceC
     if (onRangeSelect) {
       onRangeSelect(employeeId, startDate, endDate);
     }
-  };
-
-  const isAbsent = (
-    employeeId: string,
-    date: string,
-  ): Absence | undefined => {
-    return absences.find(
-      (a) =>
-        a.employeeId === employeeId &&
-        date >= a.startDate &&
-        date <= a.endDate,
-    );
   };
 
   return (

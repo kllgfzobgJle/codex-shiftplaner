@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { EmployeeManagement } from './EmployeeManagement';
 import { TeamManagement } from './TeamManagement';
 import { ShiftTypeManagement } from './ShiftTypeManagement';
-import { LearningYearManagement } from './LearningYearManagement';
-import { ShiftRuleManagement } from './ShiftRuleManagement';
+import { QualificationRuleModule } from './QualificationRuleModule';
 import { AbsenceManagement } from './AbsenceManagement';
 import { ShiftPlanner } from './ShiftPlanner';
 import { DataProvider } from './DataProvider';
@@ -130,8 +129,7 @@ export function SchichtplanerApp() {
               <TabsTrigger value="employees">Mitarbeiter</TabsTrigger>
               <TabsTrigger value="teams">Teams</TabsTrigger>
               <TabsTrigger value="shift-types">Schichttypen</TabsTrigger>
-              <TabsTrigger value="learning-years">Lehrjahre</TabsTrigger>
-              <TabsTrigger value="shift-rules">Schichtregeln</TabsTrigger>
+              <TabsTrigger value="rules-module">Regeln</TabsTrigger>
               <TabsTrigger value="absences">Abwesenheiten</TabsTrigger>
               <TabsTrigger value="planner">Planer</TabsTrigger>
             </TabsList>
@@ -178,30 +176,10 @@ export function SchichtplanerApp() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="learning-years">
+            <TabsContent value="rules-module">
               <Card>
-                <CardHeader>
-                  <CardTitle>Lehrjahr-Qualifikationen</CardTitle>
-                  <CardDescription>
-                    Konfigurieren Sie Qualifikationen und Verfügbarkeiten für verschiedene Lehrjahre.
-                  </CardDescription>
-                </CardHeader>
                 <CardContent>
-                  <LearningYearManagement />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="shift-rules">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Schichtregeln</CardTitle>
-                  <CardDescription>
-                    Definieren Sie Regeln für Schichtfolgen und Arbeitsverteilungen.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ShiftRuleManagement />
+                  <QualificationRuleModule />
                 </CardContent>
               </Card>
             </TabsContent>
