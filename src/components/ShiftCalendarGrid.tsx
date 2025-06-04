@@ -8,8 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Lock, Unlock, AlertTriangle, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Employee, ShiftType, ShiftAssignment } from '@/lib/types';
+import type { Employee, ShiftType, ShiftAssignment, Absence, WeekDay } from '@/lib/types';
 import { WEEKDAYS_SHORT } from '@/lib/types';
+
+const WEEKDAY_MAPPING: WeekDay[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
 interface ShiftCalendarGridProps {
   startDate: Date;
@@ -18,6 +20,7 @@ interface ShiftCalendarGridProps {
   shiftTypes: ShiftType[];
   assignments: ShiftAssignment[];
   conflicts: string[];
+  absences: Absence[];
   onAssignmentChange: (assignments: ShiftAssignment[]) => void;
 }
 
@@ -36,11 +39,42 @@ export function ShiftCalendarGrid({
   shiftTypes,
   assignments,
   conflicts,
+  absences,
   onAssignmentChange,
 }: ShiftCalendarGridProps) {
   const { toast } = useToast();
   const [editingCell, setEditingCell] = useState<CellData | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
+
+  const getWeekdayName = (date: Date): WeekDay | null => {
+    const day = date.getDay();
+    const name = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][day] as WeekDay;
+    return WEEKDAY_MAPPING.includes(name) ? name : null;
+  };
+
+  const isAvailable = (emp: Employee, date: Date, shift: ShiftType): boolean => {
+    const abs = absences.find(a => a.employeeId === emp.id && date >= new Date(a.startDate) && date <= new Date(a.endDate));
+    if (abs) return false;
+    const weekday = getWeekdayName(date);
+    if (!weekday) return false;
+    const sHour = parseInt(shift.startTime.split(':')[0]);
+    const eHour = parseInt(shift.endTime.split(':')[0]);
+    if (sHour < 12) {
+      if (emp.availability[`${weekday}_AM`] !== true) return false;
+    }
+    if (eHour >= 12 || (sHour >= 12 && sHour < 24)) {
+      if (emp.availability[`${weekday}_PM`] !== true) return false;
+    }
+    if (shift.endTime < shift.startTime) {
+      const next = new Date(date);
+      next.setDate(date.getDate() + 1);
+      const nextWeekday = getWeekdayName(next);
+      if (nextWeekday && eHour > 0 && eHour < 12) {
+        if (emp.availability[`${nextWeekday}_AM`] !== true) return false;
+      }
+    }
+    return true;
+  };
 
   // Get ordered shift types (following original priority order)
   const getOrderedShiftTypes = () => {
@@ -140,6 +174,22 @@ export function ShiftCalendarGrid({
 
     // Add new assignment if employee selected
     if (selectedEmployeeId) {
+      const emp = employees.find(e => e.id === selectedEmployeeId);
+      const shift = shiftTypes.find(s => s.id === editingCell.shiftTypeId);
+      if (
+        !emp ||
+        !shift ||
+        !emp.allowedShifts.includes(shift.id) ||
+        !isAvailable(emp, new Date(editingCell.date), shift)
+      ) {
+        toast({
+          title: 'Nicht möglich',
+          description: 'Mitarbeiter ist für diese Schicht nicht verfügbar.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const newAssignment: ShiftAssignment = {
         employeeId: selectedEmployeeId,
         shiftId: editingCell.shiftTypeId,
@@ -183,12 +233,13 @@ export function ShiftCalendarGrid({
   const getAvailableEmployees = (date: string, shiftTypeId: string) => {
     const shiftType = shiftTypes.find(st => st.id === shiftTypeId);
     if (!shiftType) return [];
+    const d = new Date(date);
 
     return employees.filter(employee => {
-      // Check if employee is qualified for this shift
       if (!employee.allowedShifts.includes(shiftTypeId)) return false;
 
-      // Check if employee already has assignment on this day
+      if (!isAvailable(employee, d, shiftType)) return false;
+
       const hasAssignment = assignments.some(a =>
         a.employeeId === employee.id &&
         a.date === date &&
