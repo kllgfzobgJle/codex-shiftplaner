@@ -103,14 +103,19 @@ export class ShiftScheduler {
     const current = new Date(this.options.startDate);
     const end = new Date(this.options.endDate);
     while (current <= end) {
-      if (this.getWeekdayName(current)) {
-        totalSlots += this.options.shiftTypes.length;
+      const weekday = this.getWeekdayName(current);
+      if (weekday) {
+        for (const st of this.options.shiftTypes) {
+          totalSlots += st.weeklyNeeds[weekday] ?? 0;
+        }
       }
       current.setDate(current.getDate() + 1);
     }
 
     for (const team of this.options.teams) {
-      this.teamTargets[team.id] = Math.round((team.overallShiftPercentage / 100) * totalSlots);
+      this.teamTargets[team.id] = Math.round(
+        (team.overallShiftPercentage / 100) * totalSlots,
+      );
       this.teamWorkloads[team.id] = 0;
     }
   }
