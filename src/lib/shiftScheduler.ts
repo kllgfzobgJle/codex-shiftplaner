@@ -54,6 +54,7 @@ export class ShiftScheduler {
   private shiftMap: Record<string, ShiftType>;
   private zeroShiftId?: string;
   private firstVmShiftId?: string;
+  private vmAssignmentsByDate: Record<string, string[]> = {};
   private apprenticesByYear: Record<number, Employee[]> = {};
   private apprenticeIndices: Record<number, number> = {};
   private activeApprenticeByYear: Record<number, string> = {};
@@ -662,7 +663,32 @@ export class ShiftScheduler {
             ).length;
             while (assignedCount < need) {
               let employee: Employee | null = null;
+
+              if (this.zeroShiftId && shiftType.id === this.zeroShiftId) {
+                const list = this.vmAssignmentsByDate[dateStr];
+                let matched = false;
+                if (list) {
+                  for (let i = 0; i < list.length; i++) {
+                    const emp = this.options.employees.find(
+                      (e) => e.id === list[i],
+                    );
+                    if (emp && this.canAssign(emp, day, shiftType, dateStr)) {
+                      employee = emp;
+                      list.splice(i, 1);
+                      matched = true;
+                      break;
+                    }
+                  }
+                }
+                if (!matched && list && list.length > 0) {
+                  this.conflicts.push(
+                    `0. kann nicht von derselben Person wie 1. VM ausgeführt werden am ${dateStr}`,
+                  );
+                }
+              }
+
               if (
+                !employee &&
                 this.firstVmShiftId &&
                 this.zeroShiftId &&
                 shiftType.id === this.firstVmShiftId
@@ -686,31 +712,7 @@ export class ShiftScheduler {
                   }
                 }
               }
-              if (
-                !employee &&
-                this.firstVmShiftId &&
-                this.zeroShiftId &&
-                shiftType.id === this.zeroShiftId
-              ) {
-                const vmAssign = this.assignments.find(
-                  (a) =>
-                    a.date === dateStr &&
-                    a.shiftId === this.firstVmShiftId &&
-                    !a.isFollowUp,
-                );
-                if (vmAssign) {
-                  const emp = this.options.employees.find(
-                    (e) => e.id === vmAssign.employeeId,
-                  );
-                  if (emp && this.canAssign(emp, day, shiftType, dateStr)) {
-                    employee = emp;
-                  } else if (emp) {
-                    this.conflicts.push(
-                      `0. kann nicht von derselben Person wie 1. VM ausgeführt werden am ${dateStr}`,
-                    );
-                  }
-                }
-              }
+
               if (!employee) {
                 employee = this.selectCandidate(day, shiftType, dateStr);
               }
@@ -719,6 +721,12 @@ export class ShiftScheduler {
               }
               if (employee) {
                 this.createAssignment(employee, shiftType, dateStr);
+                if (shiftType.id === this.firstVmShiftId) {
+                  if (!this.vmAssignmentsByDate[dateStr]) {
+                    this.vmAssignmentsByDate[dateStr] = [];
+                  }
+                  this.vmAssignmentsByDate[dateStr].push(employee.id);
+                }
                 this.applyMandatoryFollowUps(employee, day, shiftType);
                 assignedCount++;
               } else {
