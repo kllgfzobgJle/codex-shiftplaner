@@ -1,5 +1,9 @@
+'use client';
 import { SchichtplanerApp } from '@/components/SchichtplanerApp';
+import { UserAuth } from '@/components/UserAuth';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Page() {
-  return <SchichtplanerApp />;
+  const { user } = useAuth();
+  return user ? <SchichtplanerApp /> : <UserAuth />;
 }

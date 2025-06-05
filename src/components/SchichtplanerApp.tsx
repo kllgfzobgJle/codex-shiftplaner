@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,29 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { exportAllData, importAllData } from '@/lib/dataManager';
 
 export function SchichtplanerApp() {
-  const [userId, setUserId] = useState<string>('demo-user-001');
+  const { user, logout } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    // Simulate user authentication
-    const generateUserId = () => {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < 22; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    };
-
-    const storedUserId = localStorage.getItem('schichtplaner-user-id');
-    if (storedUserId) {
-      setUserId(storedUserId);
-    } else {
-      const newUserId = generateUserId();
-      localStorage.setItem('schichtplaner-user-id', newUserId);
-      setUserId(newUserId);
-    }
-  }, []);
 
   const handleExportAll = () => {
     try {
@@ -90,7 +69,7 @@ export function SchichtplanerApp() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">Schichtplaner</h1>
-                <p className="text-slate-300 text-sm">UserID: {userId}</p>
+                <p className="text-slate-300 text-sm">Angemeldet als: {user?.username}</p>
               </div>
               <div className="flex space-x-2">
                 <input
@@ -117,6 +96,9 @@ export function SchichtplanerApp() {
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Globaler Export (JSON)
+                </Button>
+                <Button variant="ghost" size="sm" onClick={logout}>
+                  Logout
                 </Button>
               </div>
             </div>

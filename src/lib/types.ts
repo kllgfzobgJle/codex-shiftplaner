@@ -97,6 +97,14 @@ export interface Absence {
   updatedAt: Date;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface DayShiftNeed {
   shiftTypeId: string;
   count: number;

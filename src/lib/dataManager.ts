@@ -5,7 +5,8 @@ import type {
   LearningYearQualification,
   ShiftRule,
   ShiftPlan,
-  Absence
+  Absence,
+  User
 } from './types';
 
 // Local storage keys
@@ -17,6 +18,8 @@ const STORAGE_KEYS = {
   shiftRules: 'schichtplaner-shift-rules',
   shiftPlans: 'schichtplaner-shift-plans',
   absences: 'schichtplaner-absences',
+  users: 'schichtplaner-users',
+  currentUser: 'schichtplaner-current-user',
 };
 
 // Generic storage functions
@@ -33,6 +36,55 @@ function saveToStorage<T>(key: string, data: T[]): void {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// User management
+export function getUsers(): User[] {
+  return getFromStorage<User>(STORAGE_KEYS.users);
+}
+
+export function findUserByUsername(username: string): User | undefined {
+  return getUsers().find(u => u.username === username);
+}
+
+export function saveUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): User {
+  const users = getUsers();
+  const newUser: User = {
+    ...user,
+    id: generateId(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  users.push(newUser);
+  saveToStorage(STORAGE_KEYS.users, users);
+  return newUser;
+}
+
+export function authenticateUser(
+  username: string,
+  password: string,
+): User | null {
+  const user = findUserByUsername(username);
+  if (user && user.password === password) {
+    return user;
+  }
+  return null;
+}
+
+export function setCurrentUser(id: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (id) {
+    localStorage.setItem(STORAGE_KEYS.currentUser, id);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.currentUser);
+  }
+}
+
+export function getCurrentUser(): User | null {
+  if (typeof window === 'undefined') return null;
+  const id = localStorage.getItem(STORAGE_KEYS.currentUser);
+  if (!id) return null;
+  return getUsers().find(u => u.id === id) || null;
 }
 
 // Employee management
@@ -356,6 +408,7 @@ export function exportAllData(): void {
     shiftRules: getShiftRules(),
     shiftPlans: getShiftPlans(),
     absences: getAbsences(),
+    users: getUsers(),
     exportDate: new Date().toISOString(),
   };
 
@@ -382,4 +435,5 @@ export function importAllData(jsonString: string): void {
   if (data.shiftRules) saveToStorage(STORAGE_KEYS.shiftRules, data.shiftRules);
   if (data.shiftPlans) saveToStorage(STORAGE_KEYS.shiftPlans, data.shiftPlans);
   if (data.absences) saveToStorage(STORAGE_KEYS.absences, data.absences);
+  if (data.users) saveToStorage(STORAGE_KEYS.users, data.users);
 }
