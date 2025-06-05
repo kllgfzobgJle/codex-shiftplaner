@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Clock, AlertTriangle, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
+import { FULL_TIME_WEEKLY_HOURS } from '@/lib/constants';
 import type { Employee, Team, ShiftType, ShiftAssignment, WorkloadStats } from '@/lib/types';
 
 interface AnalyticsDashboardProps {
@@ -97,7 +98,8 @@ export function AnalyticsDashboard({
       };
 
       const team = teams.find(t => t.id === employee.teamId);
-      const expectedHours = (stats.targetPercentage / 100) * 40 * getPeriodLength(); // Assuming 40h full-time week
+      const expectedHours =
+        (stats.targetPercentage / 100) * FULL_TIME_WEEKLY_HOURS * getPeriodLength();
       const utilizationPercentage = expectedHours > 0 ? (stats.hours / expectedHours) * 100 : 0;
 
       const isOverworked = utilizationPercentage > 110;
