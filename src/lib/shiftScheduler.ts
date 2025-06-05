@@ -48,6 +48,7 @@ export class ShiftScheduler {
   private firstVmShiftId?: string;
   private apprenticesByYear: Record<number, Employee[]> = {};
   private apprenticeIndices: Record<number, number> = {};
+  private activeApprenticeByYear: Record<number, string> = {};
 
   constructor(options: ScheduleOptions) {
     this.options = options;
@@ -80,6 +81,10 @@ export class ShiftScheduler {
     }
     for (const year of Object.keys(this.apprenticesByYear)) {
       this.apprenticesByYear[Number(year)].sort((a, b) => a.id.localeCompare(b.id));
+      const list = this.apprenticesByYear[Number(year)];
+      if (list.length > 0) {
+        this.activeApprenticeByYear[Number(year)] = list[0].id;
+      }
     }
   }
 
@@ -157,6 +162,13 @@ export class ShiftScheduler {
     const diff = (day + 6) % 7; // distance from Monday
     d.setDate(d.getDate() - diff);
     return d.toISOString().split('T')[0];
+  }
+
+  private isApprenticeAllowed(employee: Employee): boolean {
+    if (employee.employeeType !== 'azubi' || typeof employee.lehrjahr !== 'number') {
+      return true;
+    }
+    return this.activeApprenticeByYear[employee.lehrjahr] === employee.id;
   }
 
   private isEmployeeAvailable(employee: Employee, date: Date, shiftType: ShiftType): boolean {
@@ -285,10 +297,12 @@ export class ShiftScheduler {
         if (weekKey !== currentWeek) {
           currentWeek = weekKey;
           for (const year of Object.keys(this.apprenticesByYear)) {
-            const list = this.apprenticesByYear[Number(year)];
+            const y = Number(year);
+            const list = this.apprenticesByYear[y];
             if (list.length > 1) {
-              this.apprenticeIndices[Number(year)] = (this.apprenticeIndices[Number(year)] + 1) % list.length;
+              this.apprenticeIndices[y] = (this.apprenticeIndices[y] + 1) % list.length;
             }
+            this.activeApprenticeByYear[y] = list[this.apprenticeIndices[y]].id;
           }
         }
         const dateStr = currentDate.toISOString().split('T')[0];
@@ -368,6 +382,7 @@ export class ShiftScheduler {
           }
           const candidates = [...preferredFirst, ...others];
           for (const employee of candidates) {
+            if (!this.isApprenticeAllowed(employee)) continue;
             if (!employee.allowedShifts.includes(shiftType.id)) continue;
             if (!this.isEmployeeAvailable(employee, currentDate, shiftType)) continue;
 
