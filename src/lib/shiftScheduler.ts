@@ -258,6 +258,54 @@ export class ShiftScheduler {
     return false;
   }
 
+  private canApplyMandatoryFollowUps(employee: Employee, date: Date, shiftType: ShiftType): boolean {
+    for (const rule of this.options.shiftRules) {
+      if (rule.type !== "mandatory_follow_up" || rule.fromShiftId !== shiftType.id) continue;
+      const toShift = this.shiftMap[rule.toShiftId ?? ""];
+      if (!toShift) continue;
+
+      const fromName = this.shiftMap[rule.fromShiftId]?.name;
+      const toName = toShift.name;
+      const isFirstYear = employee.lehrjahr === 1;
+      if (
+        isFirstYear &&
+        rule.sameDay &&
+        ((fromName === "2A. VM" && toName === "2B. NM") ||
+          (fromName === "2B. VM" && toName === "2A. NM"))
+      ) {
+        continue;
+      }
+
+      const followDate = new Date(date);
+      if (!rule.sameDay) followDate.setDate(followDate.getDate() + 1);
+      const followDateStr = followDate.toISOString().split("T")[0];
+
+      if (!employee.allowedShifts.includes(toShift.id)) {
+        this.conflicts.push(
+          `Folgeschicht ${toShift.name} für ${employee.firstName} ${employee.lastName} am ${followDateStr} nicht erlaubt`,
+        );
+        return false;
+      }
+      if (!this.isEmployeeAvailable(employee, followDate, toShift)) {
+        this.conflicts.push(
+          `Mitarbeiter ${employee.firstName} ${employee.lastName} nicht verfügbar für Folgeschicht ${toShift.name} am ${followDateStr}`,
+        );
+        return false;
+      }
+
+      const alreadyPrimary = this.assignments.some(
+        a => a.employeeId === employee.id && a.date === followDateStr && !a.isFollowUp,
+      );
+      const alreadyThisShift = this.assignments.some(
+        a => a.employeeId === employee.id && a.date === followDateStr && a.shiftId === toShift.id,
+      );
+      if (alreadyPrimary || alreadyThisShift) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private applyMandatoryFollowUps(employee: Employee, date: Date, shiftType: ShiftType): void {
     for (const rule of this.options.shiftRules) {
       if (rule.type !== "mandatory_follow_up" || rule.fromShiftId !== shiftType.id) continue;
@@ -352,7 +400,8 @@ export class ShiftScheduler {
               if (
                 emp?.allowedShifts.includes(shiftType.id) &&
                 this.isEmployeeAvailable(emp, currentDate, shiftType) &&
-                !this.violatesForbiddenSequence(emp, currentDate, shiftType)
+                !this.violatesForbiddenSequence(emp, currentDate, shiftType) &&
+                this.canApplyMandatoryFollowUps(emp, currentDate, shiftType)
               ) {
                 const assignment: ShiftAssignment = {
                   employeeId: emp.id,
@@ -424,6 +473,8 @@ export class ShiftScheduler {
             if (alreadyAssigned) continue;
 
             if (this.violatesForbiddenSequence(employee, currentDate, shiftType)) continue;
+
+            if (!this.canApplyMandatoryFollowUps(employee, currentDate, shiftType)) continue;
 
             const assignment: ShiftAssignment = {
               employeeId: employee.id,
