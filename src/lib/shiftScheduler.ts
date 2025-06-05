@@ -500,13 +500,17 @@ export class ShiftScheduler {
   ): boolean {
     if (!employee.allowedShifts.includes(shiftType.id)) return false;
     if (!this.isEmployeeAvailable(employee, date, shiftType)) return false;
-    if (
-      this.assignments.some(
-        (a) =>
-          a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp,
-      )
-    )
-      return false;
+    const existing = this.assignments.find(
+      (a) => a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp,
+    );
+    if (existing) {
+      const pairAllowed =
+        (existing.shiftId === this.zeroShiftId &&
+          shiftType.id === this.firstVmShiftId) ||
+        (existing.shiftId === this.firstVmShiftId &&
+          shiftType.id === this.zeroShiftId);
+      if (!pairAllowed) return false;
+    }
     if (this.violatesForbiddenSequence(employee, date, shiftType)) return false;
     if (!this.canApplyMandatoryFollowUps(employee, date, shiftType))
       return false;
