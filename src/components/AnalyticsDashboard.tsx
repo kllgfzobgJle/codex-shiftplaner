@@ -336,8 +336,8 @@ export function AnalyticsDashboard({
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-60 overflow-y-auto">
-              {conflicts.map(conflict => (
-                <div key={conflict} className="bg-red-50 border border-red-200 rounded p-2">
+              {conflicts.map((conflict, index) => (
+                <div key={`${index}-${conflict}`} className="bg-red-50 border border-red-200 rounded p-2">
                   <div className="text-sm text-red-700">{conflict}</div>
                 </div>
               ))}
