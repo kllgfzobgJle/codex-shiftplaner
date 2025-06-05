@@ -284,6 +284,11 @@ export class ShiftScheduler {
     return Math.floor((d2.getTime() - d1.getTime()) / (24 * 60 * 60 * 1000));
   }
 
+  private doesRuleApply(employee: Employee, rule: ShiftRule): boolean {
+    const team = this.options.teams.find((t) => t.id === employee.teamId);
+    return Boolean(employee.ruleIds?.[rule.id] || team?.ruleIds?.[rule.id]);
+  }
+
   private violatesForbiddenSequence(
     employee: Employee,
     date: Date,
@@ -291,6 +296,7 @@ export class ShiftScheduler {
   ): boolean {
     for (const rule of this.options.shiftRules) {
       if (rule.type !== "forbidden_sequence") continue;
+      if (!this.doesRuleApply(employee, rule)) continue;
       const toIds = rule.toShiftIds || [];
 
       for (const a of this.assignments) {
@@ -325,6 +331,7 @@ export class ShiftScheduler {
         rule.fromShiftId !== shiftType.id
       )
         continue;
+      if (!this.doesRuleApply(employee, rule)) continue;
       const toShift = this.shiftMap[rule.toShiftId ?? ""];
       if (!toShift) continue;
 
@@ -396,6 +403,7 @@ export class ShiftScheduler {
         rule.fromShiftId !== shiftType.id
       )
         continue;
+      if (!this.doesRuleApply(employee, rule)) continue;
       const toShift = this.shiftMap[rule.toShiftId ?? ""];
       if (!toShift) continue;
 

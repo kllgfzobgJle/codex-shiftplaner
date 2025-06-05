@@ -252,7 +252,7 @@ export function EmployeeManagement() {
       Shiftsallowed: { ...prev.Shiftsallowed, [shiftTypeId]: checked },
       ShiftsSuitability: {
         ...prev.ShiftsSuitability,
-        [shiftTypeId]: checked ? prev.ShiftsSuitability[shiftTypeId] ?? 3 : 0,
+        [shiftTypeId]: checked ? prev.ShiftsSuitability[shiftTypeId] || 3 : 0,
       },
     }));
   };
@@ -263,14 +263,17 @@ export function EmployeeManagement() {
     setFormData(prev => ({
       ...prev,
       lehrjahr,
-      availability: qualification?.defaultAvailability || {},
+      availability: {
+        ...createDefaultAvailability(),
+        ...(qualification?.defaultAvailability || {}),
+      },
       Shiftsallowed: shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
         acc[st.id] = qualification?.qualifiedShiftTypes.includes(st.id) ?? false;
         return acc;
       }, {}),
       ShiftsSuitability: shiftTypes.reduce<Record<string, number>>((acc, st) => {
         const allowed = qualification?.qualifiedShiftTypes.includes(st.id) ?? false;
-        acc[st.id] = allowed ? prev.ShiftsSuitability[st.id] ?? 3 : 0;
+        acc[st.id] = allowed ? prev.ShiftsSuitability[st.id] || 3 : 0;
         return acc;
       }, {}),
     }));
