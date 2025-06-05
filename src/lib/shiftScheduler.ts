@@ -581,6 +581,25 @@ export class ShiftScheduler {
     return null;
   }
 
+  private selectAnyCandidate(
+    date: Date,
+    shiftType: ShiftType,
+    dateStr: string,
+  ): Employee | null {
+    for (const emp of this.options.employees) {
+      if (!emp.allowedShifts.includes(shiftType.id)) continue;
+      if (!this.isEmployeeAvailable(emp, date, shiftType)) continue;
+      if (
+        this.assignments.some(
+          (a) => a.employeeId === emp.id && a.date === dateStr && !a.isFollowUp,
+        )
+      )
+        continue;
+      return emp;
+    }
+    return null;
+  }
+
   public schedule(): ScheduleResult {
     const startDate = new Date(this.options.startDate);
     const endDate = new Date(this.options.endDate);
@@ -602,6 +621,13 @@ export class ShiftScheduler {
           others.push(st);
         }
       }
+      group0And1.sort((a, b) => {
+        if (a.name === "1. VM") return -1;
+        if (b.name === "1. VM") return 1;
+        if (a.name === "0.") return 1;
+        if (b.name === "0.") return -1;
+        return a.name.localeCompare(b.name);
+      });
       return [group3And4, group2, group0And1, others];
     };
 
@@ -660,8 +686,36 @@ export class ShiftScheduler {
                   }
                 }
               }
+              if (
+                !employee &&
+                this.firstVmShiftId &&
+                this.zeroShiftId &&
+                shiftType.id === this.zeroShiftId
+              ) {
+                const vmAssign = this.assignments.find(
+                  (a) =>
+                    a.date === dateStr &&
+                    a.shiftId === this.firstVmShiftId &&
+                    !a.isFollowUp,
+                );
+                if (vmAssign) {
+                  const emp = this.options.employees.find(
+                    (e) => e.id === vmAssign.employeeId,
+                  );
+                  if (emp && this.canAssign(emp, day, shiftType, dateStr)) {
+                    employee = emp;
+                  } else if (emp) {
+                    this.conflicts.push(
+                      `0. kann nicht von derselben Person wie 1. VM ausgeführt werden am ${dateStr}`,
+                    );
+                  }
+                }
+              }
               if (!employee) {
                 employee = this.selectCandidate(day, shiftType, dateStr);
+              }
+              if (!employee) {
+                employee = this.selectAnyCandidate(day, shiftType, dateStr);
               }
               if (employee) {
                 this.createAssignment(employee, shiftType, dateStr);
