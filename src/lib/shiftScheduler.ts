@@ -372,6 +372,15 @@ export class ShiftScheduler {
       if (alreadyPrimary || alreadyThisShift) {
         return false;
       }
+
+      const weekday = this.getWeekdayName(followDate);
+      const demand = weekday ? toShift.weeklyNeeds[weekday] ?? 0 : 0;
+      const currentCount = this.assignments.filter(
+        (a) => a.date === followDateStr && a.shiftId === toShift.id,
+      ).length;
+      if (currentCount >= demand) {
+        return false;
+      }
     }
     return true;
   }
@@ -432,6 +441,15 @@ export class ShiftScheduler {
           a.shiftId === toShift.id,
       );
       if (alreadyPrimary || alreadyThisShift) {
+        continue;
+      }
+
+      const weekday = this.getWeekdayName(followDate);
+      const demand = weekday ? toShift.weeklyNeeds[weekday] ?? 0 : 0;
+      const currentCount = this.assignments.filter(
+        (a) => a.date === followDateStr && a.shiftId === toShift.id,
+      ).length;
+      if (currentCount >= demand) {
         continue;
       }
 
@@ -659,10 +677,7 @@ export class ShiftScheduler {
           for (const shiftType of group) {
             const need = shiftType.weeklyNeeds[weekday] ?? 0;
             let assignedCount = this.assignments.filter(
-              (a) =>
-                a.date === dateStr &&
-                a.shiftId === shiftType.id &&
-                !a.isFollowUp,
+              (a) => a.date === dateStr && a.shiftId === shiftType.id,
             ).length;
             while (assignedCount < need) {
               let employee: Employee | null = null;
