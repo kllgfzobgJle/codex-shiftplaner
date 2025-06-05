@@ -364,6 +364,97 @@ export class ShiftScheduler {
     }
   }
 
+  private rotateApprentices(): void {
+    for (const year of Object.keys(this.apprenticesByYear)) {
+      const y = Number(year);
+      const list = this.apprenticesByYear[y];
+      if (list.length > 1) {
+        this.apprenticeIndices[y] = (this.apprenticeIndices[y] + 1) % list.length;
+      }
+    }
+  }
+
+  private canAssign(employee: Employee, date: Date, shiftType: ShiftType, dateStr: string): boolean {
+    if (!employee.allowedShifts.includes(shiftType.id)) return false;
+    if (!this.isEmployeeAvailable(employee, date, shiftType)) return false;
+    if (this.assignments.some(a => a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp)) return false;
+    if (this.violatesForbiddenSequence(employee, date, shiftType)) return false;
+    if (!this.canApplyMandatoryFollowUps(employee, date, shiftType)) return false;
+    return true;
+  }
+
+  private createAssignment(employee: Employee, shiftType: ShiftType, dateStr: string, isFollowUp = false): void {
+    const assignment: ShiftAssignment = {
+      employeeId: employee.id,
+      shiftId: shiftType.id,
+      date: dateStr,
+      locked: false,
+      isFollowUp,
+    };
+    this.assignments.push(assignment);
+    this.teamWorkloads[employee.teamId] = (this.teamWorkloads[employee.teamId] || 0) + 1;
+    const duration = this.calculateShiftDuration(shiftType);
+    this.employeeWorkloads[employee.id].hours += duration;
+    this.employeeWorkloads[employee.id].shifts += 1;
+    this.employeeWorkloads[employee.id].daysWorkedThisPeriod[dateStr] = true;
+    if (
+      employee.employeeType === 'azubi' &&
+      typeof employee.lehrjahr === 'number' &&
+      this.apprenticeShiftCounts[employee.lehrjahr]?.[shiftType.id]
+    ) {
+      this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] =
+        (this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] || 0) + 1;
+    }
+  }
+
+  private selectCandidate(date: Date, shiftType: ShiftType, dateStr: string): Employee | null {
+    const sorted = this.options.employees.slice().sort((a, b) => {
+      const ratioA = this.teamTargets[a.teamId] > 0
+        ? (this.teamWorkloads[a.teamId] || 0) / this.teamTargets[a.teamId]
+        : Number.POSITIVE_INFINITY;
+      const ratioB = this.teamTargets[b.teamId] > 0
+        ? (this.teamWorkloads[b.teamId] || 0) / this.teamTargets[b.teamId]
+        : Number.POSITIVE_INFINITY;
+      if (ratioA !== ratioB) return ratioA - ratioB;
+      const loadDiff = this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
+      if (loadDiff !== 0) return loadDiff;
+      const suitA = a.shiftSuitability?.[shiftType.id] ?? 0;
+      const suitB = b.shiftSuitability?.[shiftType.id] ?? 0;
+      return suitB - suitA;
+    });
+
+    const preferred: Employee[] = [];
+    const others: Employee[] = [];
+    for (const emp of sorted) {
+      if (
+        emp.employeeType === 'azubi' &&
+        typeof emp.lehrjahr === 'number' &&
+        this.apprenticesByYear[emp.lehrjahr]?.length > 1
+      ) {
+        const counts = this.apprenticeShiftCounts[emp.lehrjahr]?.[shiftType.id];
+        if (counts) {
+          const minCount = Math.min(...Object.values(counts));
+          if ((counts[emp.id] || 0) === minCount) {
+            preferred.push(emp);
+          } else {
+            others.push(emp);
+          }
+        } else {
+          preferred.push(emp);
+        }
+      } else {
+        preferred.push(emp);
+      }
+    }
+    const candidates = [...preferred, ...others];
+    for (const employee of candidates) {
+      if (this.canAssign(employee, date, shiftType, dateStr)) {
+        return employee;
+      }
+    }
+    return null;
+  }
+
   public schedule(): ScheduleResult {
     const currentDate = new Date(this.options.startDate);
     const endDate = new Date(this.options.endDate);
@@ -374,135 +465,37 @@ export class ShiftScheduler {
         const weekKey = this.getWeekKey(currentDate);
         if (weekKey !== currentWeek) {
           currentWeek = weekKey;
-          for (const year of Object.keys(this.apprenticesByYear)) {
-            const y = Number(year);
-            const list = this.apprenticesByYear[y];
-            if (list.length > 1) {
-              this.apprenticeIndices[y] = (this.apprenticeIndices[y] + 1) % list.length;
-            }
-            this.activeApprenticeByYear[y] = list[this.apprenticeIndices[y]].id;
-          }
+          this.rotateApprentices();
         }
         const dateStr = currentDate.toISOString().split('T')[0];
         for (const shiftType of this.options.shiftTypes) {
           const need = shiftType.weeklyNeeds[weekday] ?? 0;
-          const existing = this.assignments.filter(a => a.date === dateStr && a.shiftId === shiftType.id).length;
-          if (need <= existing) continue;
-          const slotsToFill = need - existing;
-          for (let slot = 0; slot < slotsToFill; slot++) {
-            let assigned = false;
-          if (this.firstVmShiftId && this.zeroShiftId && shiftType.id === this.firstVmShiftId) {
-            const zeroAssign = this.assignments.find(
-              a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp,
-            );
-            if (zeroAssign) {
-              const emp = this.options.employees.find(e => e.id === zeroAssign.employeeId);
-              if (
-                emp?.allowedShifts.includes(shiftType.id) &&
-                this.isEmployeeAvailable(emp, currentDate, shiftType) &&
-                !this.violatesForbiddenSequence(emp, currentDate, shiftType) &&
-                this.canApplyMandatoryFollowUps(emp, currentDate, shiftType)
-              ) {
-                const assignment: ShiftAssignment = {
-                  employeeId: emp.id,
-                  shiftId: shiftType.id,
-                  date: dateStr,
-                  locked: false,
-                  isFollowUp: false,
-                };
-                this.assignments.push(assignment);
-                this.teamWorkloads[emp.teamId] = (this.teamWorkloads[emp.teamId] || 0) + 1;
-                const duration = this.calculateShiftDuration(shiftType);
-                this.employeeWorkloads[emp.id].hours += duration;
-                this.employeeWorkloads[emp.id].shifts += 1;
-                this.employeeWorkloads[emp.id].daysWorkedThisPeriod[dateStr] = true;
-                this.applyMandatoryFollowUps(emp, currentDate, shiftType);
-                assigned = true;
-              } else {
-                this.conflicts.push(`1. VM kann nicht von derselben Person wie 0. ausgeführt werden am ${dateStr}`);
-              }
-            }
-            if (assigned) {
-              continue;
-            }
-          }
-          const sorted = this.options.employees.slice().sort((a, b) => {
-            const ratioA = this.teamTargets[a.teamId] > 0
-              ? (this.teamWorkloads[a.teamId] || 0) / this.teamTargets[a.teamId]
-              : Number.POSITIVE_INFINITY;
-            const ratioB = this.teamTargets[b.teamId] > 0
-              ? (this.teamWorkloads[b.teamId] || 0) / this.teamTargets[b.teamId]
-              : Number.POSITIVE_INFINITY;
-            if (ratioA !== ratioB) return ratioA - ratioB;
-            const loadDiff = this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
-            if (loadDiff !== 0) return loadDiff;
-            const suitA = a.shiftSuitability?.[shiftType.id] ?? 0;
-            const suitB = b.shiftSuitability?.[shiftType.id] ?? 0;
-            return suitB - suitA;
-          });
-          const preferredFirst: Employee[] = [];
-          const others: Employee[] = [];
-          for (const emp of sorted) {
-            if (
-              emp.employeeType === 'azubi' &&
-              typeof emp.lehrjahr === 'number' &&
-              this.apprenticesByYear[emp.lehrjahr]?.length > 1
-            ) {
-              const counts = this.apprenticeShiftCounts[emp.lehrjahr]?.[shiftType.id];
-              if (counts) {
-                const minCount = Math.min(...Object.values(counts));
-                if ((counts[emp.id] || 0) === minCount) {
-                  preferredFirst.push(emp);
-                } else {
-                  others.push(emp);
+          let assignedCount = this.assignments.filter(a => a.date === dateStr && a.shiftId === shiftType.id).length;
+          while (assignedCount < need) {
+            let employee: Employee | null = null;
+            if (this.firstVmShiftId && this.zeroShiftId && shiftType.id === this.firstVmShiftId) {
+              const zeroAssign = this.assignments.find(
+                a => a.date === dateStr && a.shiftId === this.zeroShiftId && !a.isFollowUp,
+              );
+              if (zeroAssign) {
+                const emp = this.options.employees.find(e => e.id === zeroAssign.employeeId);
+                if (emp && this.canAssign(emp, currentDate, shiftType, dateStr)) {
+                  employee = emp;
+                } else if (emp) {
+                  this.conflicts.push(`1. VM kann nicht von derselben Person wie 0. ausgeführt werden am ${dateStr}`);
                 }
-              } else {
-                preferredFirst.push(emp);
               }
+            }
+            if (!employee) {
+              employee = this.selectCandidate(currentDate, shiftType, dateStr);
+            }
+            if (employee) {
+              this.createAssignment(employee, shiftType, dateStr);
+              this.applyMandatoryFollowUps(employee, currentDate, shiftType);
+              assignedCount++;
             } else {
-              preferredFirst.push(emp);
-            }
-          }
-          const candidates = [...preferredFirst, ...others];
-          for (const employee of candidates) {
-            if (!this.isApprenticeAllowed(employee)) continue;
-            if (!employee.allowedShifts.includes(shiftType.id)) continue;
-            if (!this.isEmployeeAvailable(employee, currentDate, shiftType)) continue;
-
-            const alreadyAssigned = this.assignments.some(a => a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp);
-            if (alreadyAssigned) continue;
-
-            if (this.violatesForbiddenSequence(employee, currentDate, shiftType)) continue;
-
-            if (!this.canApplyMandatoryFollowUps(employee, currentDate, shiftType)) continue;
-
-            const assignment: ShiftAssignment = {
-              employeeId: employee.id,
-              shiftId: shiftType.id,
-              date: dateStr,
-              locked: false,
-              isFollowUp: false,
-            };
-            this.assignments.push(assignment);
-            this.teamWorkloads[employee.teamId] = (this.teamWorkloads[employee.teamId] || 0) + 1;
-            const duration = this.calculateShiftDuration(shiftType);
-            this.employeeWorkloads[employee.id].hours += duration;
-            this.employeeWorkloads[employee.id].shifts += 1;
-            this.employeeWorkloads[employee.id].daysWorkedThisPeriod[dateStr] = true;
-            if (
-              employee.employeeType === 'azubi' &&
-              typeof employee.lehrjahr === 'number' &&
-              this.apprenticeShiftCounts[employee.lehrjahr]?.[shiftType.id]
-            ) {
-              this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] =
-                (this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] || 0) + 1;
-            }
-            this.applyMandatoryFollowUps(employee, currentDate, shiftType);
-            assigned = true;
-            break;
-          }
-            if (!assigned) {
               this.conflicts.push(`Keine verfügbare Person für Schicht ${shiftType.name} am ${dateStr}`);
+              break;
             }
           }
         }
@@ -518,7 +511,7 @@ export class ShiftScheduler {
         unassignedShifts: this.conflicts.length,
         employeeWorkloads: this.employeeWorkloads,
         teamWorkloads: this.teamWorkloads,
-      }
+      },
     };
   }
 }
