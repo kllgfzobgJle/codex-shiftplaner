@@ -13,7 +13,7 @@ export function useSortableData<T>(items: T[], defaultConfig?: SortConfig<T>) {
   const sortedItems = useMemo(() => {
     if (!sortConfig) return items;
     const { key, direction } = sortConfig;
-    return [...items].sort((a: any, b: any) => {
+    return [...items].sort((a: T, b: T) => {
       if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
       if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
       return 0;

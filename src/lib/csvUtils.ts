@@ -66,7 +66,7 @@ export function employeesToCSV(employees: Employee[]): string {
     "updatedAt",
   ];
 
-  let csv = headers.map(escapeCsvValue).join(",") + "\n";
+  let csv = `${headers.map(escapeCsvValue).join(",")}\n`;
 
   for (const employee of employees) {
     const row = [
@@ -85,7 +85,7 @@ export function employeesToCSV(employees: Employee[]): string {
       employee.createdAt.toISOString(),
       employee.updatedAt.toISOString(),
     ];
-    csv += row.map(escapeCsvValue).join(",") + "\n";
+    csv += `${row.map(escapeCsvValue).join(",")}\n`;
   }
 
   return csv;
@@ -105,7 +105,7 @@ export function csvToEmployees(
     const values = parseCsvLine(lines[i]);
     if (values.length !== headers.length) continue;
 
-    const employee: any = {};
+    const employee: Record<string, unknown> = {};
     for (let j = 0; j < headers.length; j++) {
       const header = headers[j];
       const value = values[j];
@@ -149,7 +149,7 @@ export function csvToEmployees(
     }
 
     if (employee.firstName && employee.lastName && employee.teamId) {
-      employees.push(employee);
+      employees.push(employee as Omit<Employee, 'id' | 'createdAt' | 'updatedAt'>);
     }
   }
 
@@ -167,7 +167,7 @@ export function teamsToCSV(teams: Team[]): string {
     "updatedAt",
   ];
 
-  let csv = headers.map(escapeCsvValue).join(",") + "\n";
+  let csv = `${headers.map(escapeCsvValue).join(",")}\n`;
 
   for (const team of teams) {
     const row = [
@@ -178,7 +178,7 @@ export function teamsToCSV(teams: Team[]): string {
       team.createdAt.toISOString(),
       team.updatedAt.toISOString(),
     ];
-    csv += row.map(escapeCsvValue).join(",") + "\n";
+    csv += `${row.map(escapeCsvValue).join(",")}\n`;
   }
 
   return csv;
@@ -198,7 +198,7 @@ export function csvToTeams(
     const values = parseCsvLine(lines[i]);
     if (values.length !== headers.length) continue;
 
-    const team: any = {};
+    const team: Record<string, unknown> = {};
     for (let j = 0; j < headers.length; j++) {
       const header = headers[j];
       const value = values[j];
@@ -217,7 +217,7 @@ export function csvToTeams(
     }
 
     if (team.name) {
-      teams.push(team);
+      teams.push(team as Omit<Team, 'id' | 'createdAt' | 'updatedAt'>);
     }
   }
 
@@ -236,7 +236,7 @@ export function shiftTypesToCSV(shiftTypes: ShiftType[]): string {
     "updatedAt",
   ];
 
-  let csv = headers.map(escapeCsvValue).join(",") + "\n";
+  let csv = `${headers.map(escapeCsvValue).join(",")}\n`;
 
   for (const shiftType of shiftTypes) {
     const row = [
@@ -248,7 +248,7 @@ export function shiftTypesToCSV(shiftTypes: ShiftType[]): string {
       shiftType.createdAt.toISOString(),
       shiftType.updatedAt.toISOString(),
     ];
-    csv += row.map(escapeCsvValue).join(",") + "\n";
+    csv += `${row.map(escapeCsvValue).join(",")}\n`;
   }
 
   return csv;
@@ -268,7 +268,7 @@ export function csvToShiftTypes(
     const values = parseCsvLine(lines[i]);
     if (values.length !== headers.length) continue;
 
-    const shiftType: any = {};
+    const shiftType: Record<string, unknown> = {};
     for (let j = 0; j < headers.length; j++) {
       const header = headers[j];
       const value = values[j];
@@ -290,7 +290,7 @@ export function csvToShiftTypes(
     }
 
     if (shiftType.name && shiftType.startTime && shiftType.endTime) {
-      shiftTypes.push(shiftType);
+      shiftTypes.push(shiftType as Omit<ShiftType, 'id' | 'createdAt' | 'updatedAt'>);
     }
   }
 
@@ -309,7 +309,7 @@ export function learningYearQualificationsToCSV(
     "updatedAt",
   ];
 
-  let csv = headers.map(escapeCsvValue).join(",") + "\n";
+  let csv = `${headers.map(escapeCsvValue).join(",")}\n`;
 
   for (const qualification of qualifications) {
     const row = [
@@ -319,7 +319,7 @@ export function learningYearQualificationsToCSV(
       JSON.stringify(qualification.defaultAvailability),
       qualification.updatedAt.toISOString(),
     ];
-    csv += row.map(escapeCsvValue).join(",") + "\n";
+    csv += `${row.map(escapeCsvValue).join(",")}\n`;
   }
 
   return csv;
@@ -339,7 +339,7 @@ export function csvToLearningYearQualifications(
     const values = parseCsvLine(lines[i]);
     if (values.length !== headers.length) continue;
 
-    const qualification: any = {};
+    const qualification: Record<string, unknown> = {};
     for (let j = 0; j < headers.length; j++) {
       const header = headers[j];
       const value = values[j];
@@ -354,17 +354,20 @@ export function csvToLearningYearQualifications(
             qualification[header] = value
               ? JSON.parse(value)
               : header === "qualifiedShiftTypes"
-                ? []
-                : {};
+                ? ([] as string[])
+                : ({} as Record<string, boolean>);
           } catch {
-            qualification[header] = header === "qualifiedShiftTypes" ? [] : {};
+            qualification[header] =
+              header === "qualifiedShiftTypes"
+                ? ([] as string[])
+                : ({} as Record<string, boolean>);
           }
           break;
       }
     }
 
     if (qualification.jahr) {
-      qualifications.push(qualification);
+      qualifications.push(qualification as Partial<LearningYearQualification>);
     }
   }
 
@@ -385,7 +388,7 @@ export function shiftRulesToCSV(rules: ShiftRule[]): string {
     "updatedAt",
   ];
 
-  let csv = headers.map(escapeCsvValue).join(",") + "\n";
+  let csv = `${headers.map(escapeCsvValue).join(",")}\n`;
 
   for (const rule of rules) {
     const row = [
@@ -399,7 +402,7 @@ export function shiftRulesToCSV(rules: ShiftRule[]): string {
       rule.createdAt.toISOString(),
       rule.updatedAt.toISOString(),
     ];
-    csv += row.map(escapeCsvValue).join(",") + "\n";
+    csv += `${row.map(escapeCsvValue).join(",")}\n`;
   }
 
   return csv;
@@ -419,7 +422,7 @@ export function csvToShiftRules(
     const values = parseCsvLine(lines[i]);
     if (values.length !== headers.length) continue;
 
-    const rule: any = {};
+    const rule: Record<string, unknown> = {};
     for (let j = 0; j < headers.length; j++) {
       const header = headers[j];
       const value = values[j];
@@ -445,7 +448,7 @@ export function csvToShiftRules(
     }
 
     if (rule.type && rule.fromShiftId) {
-      rules.push(rule);
+      rules.push(rule as Omit<ShiftRule, 'id' | 'createdAt' | 'updatedAt'>);
     }
   }
 

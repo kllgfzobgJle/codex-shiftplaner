@@ -309,7 +309,7 @@ export class ReportGenerator {
         cellPadding: 2,
       },
       didParseCell: (data) => {
-        if (data.cell.text[0] && data.cell.text[0].includes('Woche')) {
+        if (data.cell.text[0]?.includes('Woche')) {
           data.cell.styles.fontStyle = 'bold';
           data.cell.styles.fillColor = [230, 230, 230] as [number, number, number];
         }
