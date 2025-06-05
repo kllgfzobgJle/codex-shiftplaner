@@ -659,7 +659,10 @@ export class ShiftScheduler {
           for (const shiftType of group) {
             const need = shiftType.weeklyNeeds[weekday] ?? 0;
             let assignedCount = this.assignments.filter(
-              (a) => a.date === dateStr && a.shiftId === shiftType.id,
+              (a) =>
+                a.date === dateStr &&
+                a.shiftId === shiftType.id &&
+                !a.isFollowUp,
             ).length;
             while (assignedCount < need) {
               let employee: Employee | null = null;
