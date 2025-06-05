@@ -4,6 +4,7 @@ import type { HAlignType } from 'jspdf-autotable';
 import { format, isWeekend, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
 import type { Employee, Team, ShiftType, ShiftAssignment, WorkloadStats } from './types';
+import { FULL_TIME_WEEKLY_HOURS } from './constants';
 
 interface JsPDFWithPlugin extends jsPDF {
   lastAutoTable?: {
@@ -116,7 +117,8 @@ export class ReportGenerator {
       };
 
       const team = this.options.teams.find(t => t.id === employee.teamId);
-      const expectedHours = (stats.targetPercentage / 100) * 40 * 4; // 4 weeks
+      const expectedHours =
+        (stats.targetPercentage / 100) * FULL_TIME_WEEKLY_HOURS * 4;
       const utilizationPercentage = expectedHours > 0 ? (stats.hours / expectedHours) * 100 : 0;
       const daysWorked = Object.keys(stats.daysWorkedThisPeriod).length;
 

@@ -45,3 +45,6 @@ Teams can define an `overallShiftPercentage` to express what portion of all
 support shifts a team should cover. During scheduling, the algorithm prioritizes
 teams that are below their target share, distributing remaining shifts fairly
 between employees within each team.
+
+The system assumes a full-time workload is **42.5 hours per week**, which is
+used when calculating utilization statistics.
