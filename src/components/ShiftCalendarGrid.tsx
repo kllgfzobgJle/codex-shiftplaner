@@ -46,6 +46,9 @@ export function ShiftCalendarGrid({
   const [editingCell, setEditingCell] = useState<CellData | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
 
+  const zeroShiftId = shiftTypes.find((st) => st.name === '0.')?.id;
+  const firstVmShiftId = shiftTypes.find((st) => st.name === '1. VM')?.id;
+
   const getWeekdayName = (date: Date): WeekDay | null => {
     const day = date.getDay();
     const name = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][day] as WeekDay;
@@ -231,22 +234,30 @@ export function ShiftCalendarGrid({
 
   // Get available employees for a shift
   const getAvailableEmployees = (date: string, shiftTypeId: string) => {
-    const shiftType = shiftTypes.find(st => st.id === shiftTypeId);
+    const shiftType = shiftTypes.find((st) => st.id === shiftTypeId);
     if (!shiftType) return [];
     const d = new Date(date);
 
-    return employees.filter(employee => {
+    return employees.filter((employee) => {
       if (!employee.allowedShifts.includes(shiftTypeId)) return false;
 
       if (!isAvailable(employee, d, shiftType)) return false;
 
-      const hasAssignment = assignments.some(a =>
-        a.employeeId === employee.id &&
-        a.date === date &&
-        !a.isFollowUp
+      const existingAssignments = assignments.filter(
+        (a) => a.employeeId === employee.id && a.date === date && !a.isFollowUp,
       );
 
-      return !hasAssignment;
+      if (existingAssignments.length === 0) return true;
+
+      if (existingAssignments.length === 1) {
+        const existing = existingAssignments[0];
+        const pairAllowed =
+          (existing.shiftId === zeroShiftId && shiftTypeId === firstVmShiftId) ||
+          (existing.shiftId === firstVmShiftId && shiftTypeId === zeroShiftId);
+        return pairAllowed;
+      }
+
+      return false;
     });
   };
 
