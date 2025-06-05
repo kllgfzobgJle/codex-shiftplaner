@@ -41,7 +41,7 @@ interface TeamFormData {
   name: string;
   overallShiftPercentage: number;
   teamLeaderId?: string;
-  ruleIds: string[];
+  ruleIds: Record<string, boolean>;
 }
 
 export function TeamManagement() {
@@ -51,19 +51,29 @@ export function TeamManagement() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-  const [formData, setFormData] = useState<TeamFormData>({
-    name: "",
-    overallShiftPercentage: 60,
-    teamLeaderId: undefined,
-    ruleIds: [],
+  const [formData, setFormData] = useState<TeamFormData>(() => {
+    const defaultRules = shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+      acc[r.id] = false;
+      return acc;
+    }, {});
+    return {
+      name: "",
+      overallShiftPercentage: 60,
+      teamLeaderId: undefined,
+      ruleIds: defaultRules,
+    };
   });
 
   const resetForm = () => {
+    const defaultRules = shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+      acc[r.id] = false;
+      return acc;
+    }, {});
     setFormData({
       name: "",
       overallShiftPercentage: 60,
       teamLeaderId: undefined,
-      ruleIds: [],
+      ruleIds: defaultRules,
     });
     setEditingTeam(null);
   };
@@ -77,7 +87,10 @@ export function TeamManagement() {
         teamLeaderId: employees.some((e) => e.id === team.teamLeaderId)
           ? team.teamLeaderId
           : undefined,
-        ruleIds: team.ruleIds || [],
+        ruleIds: shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+          acc[r.id] = team.ruleIds?.[r.id] ?? false;
+          return acc;
+        }, {}),
       });
     } else {
       resetForm();
@@ -158,7 +171,10 @@ export function TeamManagement() {
       name: `${team.name} (Kopie)`,
       overallShiftPercentage: team.overallShiftPercentage,
       teamLeaderId: team.teamLeaderId,
-      ruleIds: team.ruleIds || [],
+      ruleIds: shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+        acc[r.id] = team.ruleIds?.[r.id] ?? false;
+        return acc;
+      }, {}),
     });
     setEditingTeam(null);
     setIsDialogOpen(true);
@@ -334,13 +350,11 @@ export function TeamManagement() {
                     <div key={rule.id} className="flex items-center space-x-2">
                       <Checkbox
                         id={`rule-${rule.id}`}
-                        checked={formData.ruleIds.includes(rule.id)}
+                        checked={formData.ruleIds[rule.id] === true}
                         onCheckedChange={(checked) =>
                           setFormData(prev => ({
                             ...prev,
-                            ruleIds: checked
-                              ? [...prev.ruleIds, rule.id]
-                              : prev.ruleIds.filter(id => id !== rule.id),
+                            ruleIds: { ...prev.ruleIds, [rule.id]: !!checked },
                           }))
                         }
                       />

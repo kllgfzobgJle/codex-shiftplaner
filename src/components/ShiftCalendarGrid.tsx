@@ -182,7 +182,7 @@ export function ShiftCalendarGrid({
       if (
         !emp ||
         !shift ||
-        !emp.allowedShifts.includes(shift.id) ||
+        !emp.Shiftsallowed[shift.id] ||
         !isAvailable(emp, new Date(editingCell.date), shift)
       ) {
         toast({
@@ -239,7 +239,7 @@ export function ShiftCalendarGrid({
     const d = new Date(date);
 
     return employees.filter((employee) => {
-      if (!employee.allowedShifts.includes(shiftTypeId)) return false;
+      if (!employee.Shiftsallowed[shiftTypeId]) return false;
 
       if (!isAvailable(employee, d, shiftType)) return false;
 
@@ -313,14 +313,19 @@ export function ShiftCalendarGrid({
                         const assignment = getAssignment(dateStr, shiftType.id);
                         const employee = assignment ? getEmployee(assignment.employeeId) : undefined;
                         const isConflict = hasConflict(dateStr, shiftType.id);
+                        const weekday = getWeekdayName(date);
+                        const demand = weekday ? shiftType.weeklyNeeds[weekday] ?? 0 : 0;
+                        const disabled = demand === 0;
 
                         return (
                           <td
                             key={date.toISOString()}
-                            className={`border p-1 text-center cursor-pointer hover:bg-gray-50 transition-colors ${
-                              isConflict ? 'bg-red-50' : ''
-                            }`}
-                            onClick={() => handleCellClick(dateStr, shiftType.id)}
+                            className={`border p-1 text-center ${
+                              disabled ? 'bg-gray-100 text-gray-400' : 'cursor-pointer hover:bg-gray-50'
+                            } ${isConflict ? 'bg-red-50' : ''}`}
+                            onClick={() => {
+                              if (!disabled) handleCellClick(dateStr, shiftType.id);
+                            }}
                           >
                             {employee ? (
                               <div className="space-y-1">
