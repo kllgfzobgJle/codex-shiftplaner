@@ -49,6 +49,7 @@ export class ShiftScheduler {
   private apprenticesByYear: Record<number, Employee[]> = {};
   private apprenticeIndices: Record<number, number> = {};
   private activeApprenticeByYear: Record<number, string> = {};
+  private apprenticeShiftCounts: Record<number, Record<string, Record<string, number>>> = {};
 
   constructor(options: ScheduleOptions) {
     this.options = options;
@@ -75,6 +76,7 @@ export class ShiftScheduler {
         if (!this.apprenticesByYear[emp.lehrjahr]) {
           this.apprenticesByYear[emp.lehrjahr] = [];
           this.apprenticeIndices[emp.lehrjahr] = 0;
+          this.apprenticeShiftCounts[emp.lehrjahr] = {};
         }
         this.apprenticesByYear[emp.lehrjahr].push(emp);
       }
@@ -84,6 +86,14 @@ export class ShiftScheduler {
       const list = this.apprenticesByYear[Number(year)];
       if (list.length > 0) {
         this.activeApprenticeByYear[Number(year)] = list[0].id;
+      }
+      for (const st of this.options.shiftTypes) {
+        if (!this.apprenticeShiftCounts[Number(year)][st.id]) {
+          this.apprenticeShiftCounts[Number(year)][st.id] = {};
+        }
+        for (const emp of list) {
+          this.apprenticeShiftCounts[Number(year)][st.id][emp.id] = 0;
+        }
       }
     }
   }
@@ -129,6 +139,14 @@ export class ShiftScheduler {
           const emp = this.options.employees.find(e => e.id === assignment.employeeId);
           if (emp) {
             this.teamWorkloads[emp.teamId] = (this.teamWorkloads[emp.teamId] || 0) + 1;
+            if (
+              emp.employeeType === 'azubi' &&
+              typeof emp.lehrjahr === 'number' &&
+              this.apprenticeShiftCounts[emp.lehrjahr]?.[assignment.shiftId]
+            ) {
+              this.apprenticeShiftCounts[emp.lehrjahr][assignment.shiftId][emp.id] =
+                (this.apprenticeShiftCounts[emp.lehrjahr][assignment.shiftId][emp.id] || 0) + 1;
+            }
           }
         }
       }
@@ -165,10 +183,9 @@ export class ShiftScheduler {
   }
 
   private isApprenticeAllowed(employee: Employee): boolean {
-    if (employee.employeeType !== 'azubi' || typeof employee.lehrjahr !== 'number') {
-      return true;
-    }
-    return this.activeApprenticeByYear[employee.lehrjahr] === employee.id;
+    // Apprentices should not be restricted by a rotating active index.
+    // All apprentices are eligible; fairness is handled separately.
+    return true;
   }
 
   private isEmployeeAvailable(employee: Employee, date: Date, shiftType: ShiftType): boolean {
@@ -283,6 +300,14 @@ export class ShiftScheduler {
       this.employeeWorkloads[employee.id].hours += duration;
       this.employeeWorkloads[employee.id].shifts += 1;
       this.employeeWorkloads[employee.id].daysWorkedThisPeriod[followDateStr] = true;
+      if (
+        employee.employeeType === 'azubi' &&
+        typeof employee.lehrjahr === 'number' &&
+        this.apprenticeShiftCounts[employee.lehrjahr]?.[toShift.id]
+      ) {
+        this.apprenticeShiftCounts[employee.lehrjahr][toShift.id][employee.id] =
+          (this.apprenticeShiftCounts[employee.lehrjahr][toShift.id][employee.id] || 0) + 1;
+      }
     }
   }
 
@@ -369,12 +394,16 @@ export class ShiftScheduler {
               typeof emp.lehrjahr === 'number' &&
               this.apprenticesByYear[emp.lehrjahr]?.length > 1
             ) {
-              const idx = this.apprenticeIndices[emp.lehrjahr];
-              const preferredId = this.apprenticesByYear[emp.lehrjahr][idx].id;
-              if (emp.id === preferredId) {
-                preferredFirst.push(emp);
+              const counts = this.apprenticeShiftCounts[emp.lehrjahr]?.[shiftType.id];
+              if (counts) {
+                const minCount = Math.min(...Object.values(counts));
+                if ((counts[emp.id] || 0) === minCount) {
+                  preferredFirst.push(emp);
+                } else {
+                  others.push(emp);
+                }
               } else {
-                others.push(emp);
+                preferredFirst.push(emp);
               }
             } else {
               preferredFirst.push(emp);
@@ -404,6 +433,14 @@ export class ShiftScheduler {
             this.employeeWorkloads[employee.id].hours += duration;
             this.employeeWorkloads[employee.id].shifts += 1;
             this.employeeWorkloads[employee.id].daysWorkedThisPeriod[dateStr] = true;
+            if (
+              employee.employeeType === 'azubi' &&
+              typeof employee.lehrjahr === 'number' &&
+              this.apprenticeShiftCounts[employee.lehrjahr]?.[shiftType.id]
+            ) {
+              this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] =
+                (this.apprenticeShiftCounts[employee.lehrjahr][shiftType.id][employee.id] || 0) + 1;
+            }
             this.applyMandatoryFollowUps(employee, currentDate, shiftType);
             assigned = true;
             break;
