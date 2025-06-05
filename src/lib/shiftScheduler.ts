@@ -344,7 +344,7 @@ export class ShiftScheduler {
       if (!rule.sameDay) followDate.setDate(followDate.getDate() + 1);
       const followDateStr = followDate.toISOString().split("T")[0];
 
-      if (!employee.allowedShifts.includes(toShift.id)) {
+      if (!employee.Shiftsallowed[toShift.id]) {
         this.conflicts.push(
           `Folgeschicht ${toShift.name} für ${employee.firstName} ${employee.lastName} am ${followDateStr} nicht erlaubt`,
         );
@@ -415,7 +415,7 @@ export class ShiftScheduler {
       if (!rule.sameDay) followDate.setDate(followDate.getDate() + 1);
       const followDateStr = followDate.toISOString().split("T")[0];
 
-      if (!employee.allowedShifts.includes(toShift.id)) {
+      if (!employee.Shiftsallowed[toShift.id]) {
         this.conflicts.push(
           `Folgeschicht ${toShift.name} für ${employee.firstName} ${employee.lastName} am ${followDateStr} nicht erlaubt`,
         );
@@ -498,7 +498,7 @@ export class ShiftScheduler {
     shiftType: ShiftType,
     dateStr: string,
   ): boolean {
-    if (!employee.allowedShifts.includes(shiftType.id)) return false;
+    if (!employee.Shiftsallowed[shiftType.id]) return false;
     if (!this.isEmployeeAvailable(employee, date, shiftType)) return false;
     const existing = this.assignments.find(
       (a) => a.employeeId === employee.id && a.date === dateStr && !a.isFollowUp,
@@ -567,8 +567,8 @@ export class ShiftScheduler {
       const loadDiff =
         this.employeeWorkloads[a.id].hours - this.employeeWorkloads[b.id].hours;
       if (loadDiff !== 0) return loadDiff;
-      const suitA = a.shiftSuitability?.[shiftType.id] ?? 0;
-      const suitB = b.shiftSuitability?.[shiftType.id] ?? 0;
+      const suitA = a.ShiftsSuitability?.[shiftType.id] ?? 0;
+      const suitB = b.ShiftsSuitability?.[shiftType.id] ?? 0;
       return suitB - suitA;
     });
 
@@ -610,7 +610,7 @@ export class ShiftScheduler {
     dateStr: string,
   ): Employee | null {
     for (const emp of this.options.employees) {
-      if (!emp.allowedShifts.includes(shiftType.id)) continue;
+      if (!emp.Shiftsallowed[shiftType.id]) continue;
       if (!this.isEmployeeAvailable(emp, date, shiftType)) continue;
       if (
         this.assignments.some(

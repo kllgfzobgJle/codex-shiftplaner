@@ -8,15 +8,15 @@ export interface Employee {
   grade: number; // Percentage (1-100)
   teamId: string;
   specificShiftPercentage?: number; // Optional override for team percentage
-  allowedShifts: string[]; // Array of shift type IDs
+  Shiftsallowed: Record<string, boolean>; // Keyed by shift type ID
   /** IDs of Schichtregeln, die speziell für diesen Mitarbeiter gelten */
-  ruleIds?: string[];
+  ruleIds: Record<string, boolean>;
   /**
    * Optional rating of how suitable an employee is for a given shift type.
    * The key is the shift type id and the value is a number from 0-5 where 5
    * means highly suitable and 0 means not suitable.
    */
-  shiftSuitability?: Record<string, number>;
+  ShiftsSuitability: Record<string, number>;
   availability: Record<string, boolean>; // e.g. {"monday_AM": true, "monday_PM": false}
   createdAt: Date;
   updatedAt: Date;
@@ -28,7 +28,7 @@ export interface Team {
   overallShiftPercentage: number; // Percentage (0-100)
   teamLeaderId?: string; // Optional employee ID of team leader
   /** IDs of Schichtregeln, die für dieses Team gelten */
-  ruleIds?: string[];
+  ruleIds: Record<string, boolean>;
   createdAt: Date;
   updatedAt: Date;
 }

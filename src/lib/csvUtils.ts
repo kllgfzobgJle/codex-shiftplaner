@@ -59,8 +59,8 @@ export function employeesToCSV(employees: Employee[]): string {
     "grade",
     "teamId",
     "specificShiftPercentage",
-    "allowedShifts",
-    "shiftSuitability",
+    "Shiftsallowed",
+    "ShiftsSuitability",
     "availability",
     "createdAt",
     "updatedAt",
@@ -79,8 +79,8 @@ export function employeesToCSV(employees: Employee[]): string {
       employee.grade,
       employee.teamId,
       employee.specificShiftPercentage ?? "",
-      JSON.stringify(employee.allowedShifts),
-      JSON.stringify(employee.shiftSuitability ?? {}),
+      JSON.stringify(employee.Shiftsallowed),
+      JSON.stringify(employee.ShiftsSuitability),
       JSON.stringify(employee.availability),
       employee.createdAt.toISOString(),
       employee.updatedAt.toISOString(),
@@ -129,20 +129,19 @@ export function csvToEmployees(
                 ? 100
                 : undefined;
           break;
-        case "allowedShifts":
-        case "shiftSuitability":
+        case "Shiftsallowed":
+        case "ShiftsSuitability":
         case "availability":
           try {
             employee[header] = value
               ? JSON.parse(value)
-              : header === "allowedShifts"
-                ? []
-                : header === "shiftSuitability"
+              : header === "Shiftsallowed"
+                ? {}
+                : header === "ShiftsSuitability"
                   ? {}
                 : {};
           } catch {
-            employee[header] = header === "allowedShifts" ? [] : {};
-            if (header === "shiftSuitability") employee[header] = {};
+            employee[header] = {};
           }
           break;
       }

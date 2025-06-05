@@ -28,10 +28,10 @@ interface EmployeeFormData {
   grade: number;
   teamId: string;
   specificShiftPercentage?: number;
-  allowedShifts: string[];
-  shiftSuitability: Record<string, number>;
+  Shiftsallowed: Record<string, boolean>;
+  ShiftsSuitability: Record<string, number>;
   availability: Record<string, boolean>;
-  ruleIds: string[];
+  ruleIds: Record<string, boolean>;
 }
 
 export function EmployeeManagement() {
@@ -41,20 +41,46 @@ export function EmployeeManagement() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-  const [formData, setFormData] = useState<EmployeeFormData>({
-    firstName: '',
-    lastName: '',
-    kuerzel: '',
-    employeeType: 'ausgelernt',
-    grade: 100,
-    teamId: '',
-    allowedShifts: [],
-    shiftSuitability: {},
-    availability: createDefaultAvailability(),
-    ruleIds: [],
+  const [formData, setFormData] = useState<EmployeeFormData>(() => {
+    const defaultAllowed = shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
+      acc[st.id] = false;
+      return acc;
+    }, {});
+    const defaultSuit = shiftTypes.reduce<Record<string, number>>((acc, st) => {
+      acc[st.id] = 0;
+      return acc;
+    }, {});
+    const defaultRules = shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+      acc[r.id] = false;
+      return acc;
+    }, {});
+    return {
+      firstName: '',
+      lastName: '',
+      kuerzel: '',
+      employeeType: 'ausgelernt',
+      grade: 100,
+      teamId: '',
+      Shiftsallowed: defaultAllowed,
+      ShiftsSuitability: defaultSuit,
+      availability: createDefaultAvailability(),
+      ruleIds: defaultRules,
+    };
   });
 
   const resetForm = () => {
+    const defaultAllowed = shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
+      acc[st.id] = false;
+      return acc;
+    }, {});
+    const defaultSuit = shiftTypes.reduce<Record<string, number>>((acc, st) => {
+      acc[st.id] = 0;
+      return acc;
+    }, {});
+    const defaultRules = shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+      acc[r.id] = false;
+      return acc;
+    }, {});
     setFormData({
       firstName: '',
       lastName: '',
@@ -62,10 +88,10 @@ export function EmployeeManagement() {
       employeeType: 'ausgelernt',
       grade: 100,
       teamId: '',
-      allowedShifts: [],
-      shiftSuitability: {},
+      Shiftsallowed: defaultAllowed,
+      ShiftsSuitability: defaultSuit,
       availability: createDefaultAvailability(),
-      ruleIds: [],
+      ruleIds: defaultRules,
     });
     setEditingEmployee(null);
   };
@@ -84,10 +110,20 @@ export function EmployeeManagement() {
         grade: employee.grade,
         teamId: employee.teamId,
         specificShiftPercentage: employee.specificShiftPercentage,
-        allowedShifts: employee.allowedShifts,
-        shiftSuitability: employee.shiftSuitability || {},
+        Shiftsallowed: shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
+          acc[st.id] = employee.Shiftsallowed?.[st.id] ?? false;
+          return acc;
+        }, {}),
+        ShiftsSuitability: shiftTypes.reduce<Record<string, number>>((acc, st) => {
+          const allowed = employee.Shiftsallowed?.[st.id] ?? false;
+          acc[st.id] = allowed ? employee.ShiftsSuitability?.[st.id] ?? 3 : 0;
+          return acc;
+        }, {}),
         availability: employee.availability,
-        ruleIds: employee.ruleIds || [],
+        ruleIds: shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+          acc[r.id] = employee.ruleIds?.[r.id] ?? false;
+          return acc;
+        }, {}),
       });
     } else {
       resetForm();
@@ -181,10 +217,20 @@ export function EmployeeManagement() {
       grade: employee.grade,
       teamId: employee.teamId,
       specificShiftPercentage: employee.specificShiftPercentage,
-      allowedShifts: employee.allowedShifts,
-      shiftSuitability: employee.shiftSuitability || {},
+      Shiftsallowed: shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
+        acc[st.id] = employee.Shiftsallowed?.[st.id] ?? false;
+        return acc;
+      }, {}),
+      ShiftsSuitability: shiftTypes.reduce<Record<string, number>>((acc, st) => {
+        const allowed = employee.Shiftsallowed?.[st.id] ?? false;
+        acc[st.id] = allowed ? employee.ShiftsSuitability?.[st.id] ?? 3 : 0;
+        return acc;
+      }, {}),
       availability: employee.availability,
-      ruleIds: employee.ruleIds || [],
+      ruleIds: shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+        acc[r.id] = employee.ruleIds?.[r.id] ?? false;
+        return acc;
+      }, {}),
     });
     setEditingEmployee(null);
     setIsDialogOpen(true);
@@ -203,12 +249,11 @@ export function EmployeeManagement() {
   const handleShiftTypeChange = (shiftTypeId: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      allowedShifts: checked
-        ? [...prev.allowedShifts, shiftTypeId]
-        : prev.allowedShifts.filter(id => id !== shiftTypeId),
-      shiftSuitability: checked
-        ? { ...prev.shiftSuitability, [shiftTypeId]: prev.shiftSuitability[shiftTypeId] ?? 3 }
-        : Object.fromEntries(Object.entries(prev.shiftSuitability).filter(([k]) => k !== shiftTypeId)),
+      Shiftsallowed: { ...prev.Shiftsallowed, [shiftTypeId]: checked },
+      ShiftsSuitability: {
+        ...prev.ShiftsSuitability,
+        [shiftTypeId]: checked ? prev.ShiftsSuitability[shiftTypeId] ?? 3 : 0,
+      },
     }));
   };
 
@@ -219,14 +264,15 @@ export function EmployeeManagement() {
       ...prev,
       lehrjahr,
       availability: qualification?.defaultAvailability || {},
-      allowedShifts: qualification?.qualifiedShiftTypes || [],
-      shiftSuitability: qualification?.qualifiedShiftTypes?.reduce<Record<string, number>>(
-        (acc, id) => {
-          acc[id] = prev.shiftSuitability[id] ?? 3;
-          return acc;
-        },
-        {}
-      ) || {},
+      Shiftsallowed: shiftTypes.reduce<Record<string, boolean>>((acc, st) => {
+        acc[st.id] = qualification?.qualifiedShiftTypes.includes(st.id) ?? false;
+        return acc;
+      }, {}),
+      ShiftsSuitability: shiftTypes.reduce<Record<string, number>>((acc, st) => {
+        const allowed = qualification?.qualifiedShiftTypes.includes(st.id) ?? false;
+        acc[st.id] = allowed ? prev.ShiftsSuitability[st.id] ?? 3 : 0;
+        return acc;
+      }, {}),
     }));
   };
 
@@ -471,7 +517,7 @@ export function EmployeeManagement() {
                       <div key={shiftType.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={`shift-${shiftType.id}`}
-                          checked={formData.allowedShifts.includes(shiftType.id)}
+                          checked={formData.Shiftsallowed[shiftType.id] === true}
                           onCheckedChange={(checked) => handleShiftTypeChange(shiftType.id, !!checked)}
                         />
                         <Label htmlFor={`shift-${shiftType.id}`} className="text-sm">
@@ -483,42 +529,37 @@ export function EmployeeManagement() {
                 </Card>
               </div>
 
-              {formData.allowedShifts.length > 0 && (
-                <div>
-                  <Label>Schicht-Eignung (0-5)</Label>
-                  <Card className="p-4 mt-2">
-                    <div className="grid grid-cols-3 gap-4">
-                      {formData.allowedShifts.map(shiftId => {
-                        const st = shiftTypes.find(s => s.id === shiftId);
-                        if (!st) return null;
-                        return (
-                          <div key={shiftId} className="space-y-1">
-                            <Label htmlFor={`suit-${shiftId}`} className="text-sm">
-                              {st.name}
-                            </Label>
-                            <Input
-                              id={`suit-${shiftId}`}
-                              type="number"
-                              min="0"
-                              max="5"
-                              value={formData.shiftSuitability[shiftId] ?? 3}
-                              onChange={(e) =>
-                                setFormData(prev => ({
-                                  ...prev,
-                                  shiftSuitability: {
-                                    ...prev.shiftSuitability,
-                                    [shiftId]: Math.min(5, Math.max(0, Number(e.target.value)))
-                                  }
-                                }))
+              <div>
+                <Label>Schicht-Eignung (0-5)</Label>
+                <Card className="p-4 mt-2">
+                  <div className="grid grid-cols-3 gap-4">
+                    {shiftTypes.map(st => (
+                      <div key={st.id} className="space-y-1">
+                        <Label htmlFor={`suit-${st.id}`} className="text-sm">
+                          {st.name}
+                        </Label>
+                        <Input
+                          id={`suit-${st.id}`}
+                          type="number"
+                          min="0"
+                          max="5"
+                          value={formData.ShiftsSuitability[st.id] ?? 0}
+                          disabled={!formData.Shiftsallowed[st.id]}
+                          onChange={(e) =>
+                            setFormData(prev => ({
+                              ...prev,
+                              ShiftsSuitability: {
+                                ...prev.ShiftsSuitability,
+                                [st.id]: Math.min(5, Math.max(0, Number(e.target.value)))
                               }
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                </div>
-              )}
+                            }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
 
               <div>
                 <Label>Individuelle Regeln</Label>
@@ -528,13 +569,11 @@ export function EmployeeManagement() {
                       <div key={rule.id} className="flex items-center space-x-2">
                         <Checkbox
                           id={`erule-${rule.id}`}
-                          checked={formData.ruleIds.includes(rule.id)}
+                          checked={formData.ruleIds[rule.id] === true}
                           onCheckedChange={(checked) =>
                             setFormData(prev => ({
                               ...prev,
-                              ruleIds: checked
-                                ? [...prev.ruleIds, rule.id]
-                                : prev.ruleIds.filter(id => id !== rule.id),
+                              ruleIds: { ...prev.ruleIds, [rule.id]: !!checked },
                             }))
                           }
                         />
