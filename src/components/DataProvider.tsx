@@ -10,6 +10,7 @@ import {
   getShiftRules,
   getAbsences,
 } from '@/lib/dataManager';
+import { createDefaultAvailability } from '@/lib/createDefaultAvailability';
 
 interface DataContextType {
   employees: Employee[];
@@ -32,10 +33,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [absences, setAbsences] = useState<Absence[]>([]);
 
   const refreshData = useCallback(() => {
-    setEmployees(getEmployees());
-    setTeams(getTeams());
-    setShiftTypes(getShiftTypes());
-    setLearningYearQualifications(getLearningYearQualifications());
+    const teamsData = getTeams();
+    const shiftTypesData = getShiftTypes();
+    const learningYearData = getLearningYearQualifications();
+    const employeesData = getEmployees().map(emp => {
+      if (emp.employeeType === 'azubi' && typeof emp.lehrjahr === 'number') {
+        const qualification = learningYearData.find(q => q.jahr === emp.lehrjahr);
+        if (qualification) {
+          const allowed = shiftTypesData.reduce<Record<string, boolean>>((acc, st) => {
+            acc[st.id] = qualification.qualifiedShiftTypes.includes(st.id);
+            return acc;
+          }, {});
+          return {
+            ...emp,
+            availability: {
+              ...createDefaultAvailability(),
+              ...qualification.defaultAvailability,
+            },
+            Shiftsallowed: allowed,
+          } as Employee;
+        }
+      }
+      return emp;
+    });
+
+    setEmployees(employeesData);
+    setTeams(teamsData);
+    setShiftTypes(shiftTypesData);
+    setLearningYearQualifications(learningYearData);
     setShiftRules(getShiftRules());
     setAbsences(getAbsences());
   }, []);
