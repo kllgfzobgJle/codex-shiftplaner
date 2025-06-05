@@ -737,10 +737,10 @@ export class ShiftScheduler {
 
     return {
       assignments: this.assignments,
-      conflicts: this.conflicts,
+      conflicts: Array.from(new Set(this.conflicts)),
       statistics: {
         totalAssignments: this.assignments.length,
-        unassignedShifts: this.conflicts.length,
+        unassignedShifts: Array.from(new Set(this.conflicts)).length,
         employeeWorkloads: this.employeeWorkloads,
         teamWorkloads: this.teamWorkloads,
       },
