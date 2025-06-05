@@ -276,6 +276,19 @@ export function EmployeeManagement() {
     }));
   };
 
+  const handleTeamChange = (teamId: string) => {
+    const team = teams.find(t => t.id === teamId);
+    const defaultRules = shiftRules.reduce<Record<string, boolean>>((acc, r) => {
+      acc[r.id] = team?.ruleIds?.[r.id] ?? false;
+      return acc;
+    }, {});
+    setFormData(prev => ({
+      ...prev,
+      teamId,
+      ruleIds: defaultRules,
+    }));
+  };
+
 
   const getTeamName = (teamId: string) => {
     const team = teams.find(t => t.id === teamId);
@@ -473,7 +486,7 @@ export function EmployeeManagement() {
                   <Label htmlFor="teamId">Team *</Label>
                   <Select
                     value={formData.teamId}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, teamId: value }))}
+                    onValueChange={(value) => handleTeamChange(value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Team wählen" />

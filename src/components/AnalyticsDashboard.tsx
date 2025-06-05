@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, Clock, AlertTriangle, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
 import { FULL_TIME_WEEKLY_HOURS } from '@/lib/constants';
+import { calculateShiftDuration } from '@/lib/constants';
 import type { Employee, Team, ShiftType, ShiftAssignment, WorkloadStats } from '@/lib/types';
 
 interface AnalyticsDashboardProps {
@@ -43,6 +44,21 @@ export function AnalyticsDashboard({
       0,
     );
     return Number(total.toFixed(1));
+  };
+
+  // Calculate required working hours for the period based on shift definitions
+  const calculateRequiredHours = () => {
+    const weeks = getPeriodLength();
+    let hours = 0;
+    for (const st of shiftTypes) {
+      const duration = calculateShiftDuration(st);
+      const weeklyNeed = Object.values(st.weeklyNeeds).reduce(
+        (sum, need) => sum + need,
+        0,
+      );
+      hours += duration * weeklyNeed * weeks;
+    }
+    return Number(hours.toFixed(1));
   };
 
   // Calculate shift coverage statistics
@@ -168,7 +184,9 @@ export function AnalyticsDashboard({
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{calculateTotalHours()}</div>
+            <div className="text-2xl font-bold">
+              {calculateTotalHours()} / {calculateRequiredHours()} h
+            </div>
             <p className="text-xs text-muted-foreground">
               Über {periodWeeks} Wochen
             </p>
