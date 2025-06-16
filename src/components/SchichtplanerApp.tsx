@@ -14,6 +14,7 @@ import { DataProvider } from './DataProvider';
 import { Download, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportAllData, importAllData } from '@/lib/dataManager';
+import { ThemeToggle } from './ThemeToggle';
 
 export function SchichtplanerApp() {
   const { user, logout } = useAuth();
@@ -63,15 +64,16 @@ export function SchichtplanerApp() {
 
   return (
     <DataProvider>
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-slate-800 text-white shadow-lg">
+      <div className="min-h-screen bg-background">
+        <header className="bg-secondary text-secondary-foreground shadow-lg">
           <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold">Schichtplaner</h1>
-                <p className="text-slate-300 text-sm">Angemeldet als: {user?.username}</p>
+                <p className="text-muted-foreground text-sm">Angemeldet als: {user?.username}</p>
               </div>
-              <div className="flex space-x-2">
+              <div className="flex space-x-2 items-center">
+                <ThemeToggle />
                 <input
                   type="file"
                   accept=".json"
@@ -82,7 +84,6 @@ export function SchichtplanerApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-slate-800 border-slate-300 bg-white hover:bg-slate-100"
                   onClick={() => document.getElementById('import-file')?.click()}
                 >
                   <Upload className="w-4 h-4 mr-2" />
@@ -91,7 +92,6 @@ export function SchichtplanerApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-slate-800 border-slate-300 bg-white hover:bg-slate-100"
                   onClick={handleExportAll}
                 >
                   <Download className="w-4 h-4 mr-2" />

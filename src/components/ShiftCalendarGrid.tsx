@@ -281,11 +281,11 @@ export function ShiftCalendarGrid({
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="border p-2 bg-gray-50 text-left font-medium min-w-[120px]">
+                    <th className="border p-2 bg-secondary text-left font-medium min-w-[120px]">
                       Schicht
                     </th>
                     {week.map((date, dayIndex) => (
-                      <th key={date.toISOString()} className="border p-2 bg-gray-50 text-center font-medium min-w-[100px]">
+                      <th key={date.toISOString()} className="border p-2 bg-secondary text-center font-medium min-w-[100px]">
                         <div className="text-xs text-gray-600">
                           {Object.values(WEEKDAYS_SHORT)[dayIndex]}
                         </div>
@@ -302,7 +302,7 @@ export function ShiftCalendarGrid({
                 <tbody>
                   {orderedShiftTypes.map(shiftType => (
                     <tr key={shiftType.id}>
-                      <td className="border p-2 bg-gray-50 font-medium">
+                      <td className="border p-2 bg-secondary font-medium">
                         <div className="text-sm">{shiftType.name}</div>
                         <div className="text-xs text-gray-500">
                           {shiftType.startTime} - {shiftType.endTime}
@@ -321,7 +321,7 @@ export function ShiftCalendarGrid({
                           <td
                             key={date.toISOString()}
                             className={`border p-1 text-center ${
-                              disabled ? 'bg-gray-100 text-gray-400' : 'cursor-pointer hover:bg-gray-50'
+                              disabled ? 'bg-muted text-muted-foreground' : 'cursor-pointer hover:bg-secondary'
                             } ${isConflict ? 'bg-red-50' : ''}`}
                             onClick={() => {
                               if (!disabled) handleCellClick(dateStr, shiftType.id);

@@ -308,7 +308,7 @@ export function ShiftPlanner() {
                 type="date"
                 value={endDate}
                 readOnly
-                className="bg-gray-100"
+                className="bg-muted"
               />
             </div>
             <div>
