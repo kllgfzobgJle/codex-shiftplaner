@@ -117,13 +117,13 @@ export function AbsenceCalendar({ employees, absences, onRangeSelect, onAbsenceC
         <table className="w-full border-collapse">
           <thead>
             <tr>
-              <th className="border p-2 bg-gray-50 text-left font-medium min-w-[120px]">
+              <th className="border p-2 bg-secondary text-left font-medium min-w-[120px]">
                 Mitarbeiter
               </th>
               {daysArray.map((d) => (
                 <th
                   key={d.toISOString()}
-                  className="border p-1 bg-gray-50 text-center text-xs min-w-[40px]"
+                  className="border p-1 bg-secondary text-center text-xs min-w-[40px]"
                 >
                   {d.getDate()}
                 </th>
@@ -133,7 +133,7 @@ export function AbsenceCalendar({ employees, absences, onRangeSelect, onAbsenceC
           <tbody>
             {employees.map((emp) => (
               <tr key={emp.id}>
-                <td className="border p-1 bg-gray-50 text-sm font-medium">
+                <td className="border p-1 bg-secondary text-sm font-medium">
                   {emp.firstName} {emp.lastName}
                 </td>
                 {daysArray.map((d) => {
